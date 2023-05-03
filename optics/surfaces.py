@@ -110,7 +110,8 @@ class RectangularAperture(Aperture):
     def mask(self, x, y):
         cx = x - self.dx
         cy = y - self.dy
-        return (cx > self.x_width / 2) | (cx < self.x_width / 2) | (cy > self.y_width / 2) | (cy < self.y_width / 2)
+        return (cx > self.x_width / 2) | (cx < (-self.x_width / 2)) |\
+               (cy > self.y_width / 2) | (cy < (-self.y_width / 2))
 
 
 class Substrate:
