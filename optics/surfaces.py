@@ -167,9 +167,9 @@ class Substrate:
         delta = self.sag(x, y) - Sphere(r, dx, dy, dz).sag(x, y)
         return np.mean(delta ** 2)
 
-    def interferogram(self):
+    def interferogram(self, phase=0):
         x, y = self.meshgrid()
         delta = self.sag(x, y) - self.best_sphere.sag(x, y)
 
         wvl = 632e-6
-        return (1 + np.cos(2 * np.pi * 2 * delta / wvl)) / 2
+        return (1 + np.cos(2 * np.pi * (phase + 2 * delta / wvl))) / 2
