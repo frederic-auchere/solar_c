@@ -144,7 +144,6 @@ class Substrate:
         for px, py in zip((x.min(), x.max(), x_mean, x_mean), (y_mean, y_mean, y.min(), y.max())):
             points.append(Point(px, py, self.surface.sag(px, py)))
         x0, y0, z0, r0 = sphere_from_four_points(*points)
-        print(x0, y0, z0, r0)
         mini = minimize(self._sphere_min,
                         np.array([r0, x0, y0, z0 - r0]),
                         args=(x, y), method='Powell')
