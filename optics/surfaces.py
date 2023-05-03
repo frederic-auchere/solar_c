@@ -122,7 +122,8 @@ class Substrate:
         self._best_sphere = None
 
     def mask(self, x, y):
-        return self.aperture.mask(x, y) if self.useful_area is None else self.useful_area.mask(x, y)
+        mask = self.aperture.mask(x, y)
+        return mask if self.useful_area is None else mask & self.useful_area.mask(x, y)
 
     def sag(self, x, y):
         return ma.masked_array(self.surface.sag(x, y), self.mask(x, y))
