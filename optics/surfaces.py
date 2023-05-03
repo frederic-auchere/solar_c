@@ -131,7 +131,9 @@ class Substrate:
 
     @property
     def best_sphere(self):
-        return self._find_best_sphere() if self._best_sphere is None else self._best_sphere
+        if self._best_sphere is None:
+            self._best_sphere = self._find_best_sphere()
+        return self._best_sphere
 
     def _find_best_sphere(self):
         x, y = self.meshgrid()
