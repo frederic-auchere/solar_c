@@ -135,10 +135,6 @@ class Substrate:
 
     def _find_best_sphere(self):
         x, y = self.meshgrid()
-        mask = self.mask(x, y)
-        x = x[~mask]
-        y = y[~mask]
-
         x_mean, y_mean = x.mean(), y.mean()
         points = []
         for px, py in zip((x.min(), x.max(), x_mean, x_mean), (y_mean, y_mean, y.min(), y.max())):
@@ -165,7 +161,7 @@ class Substrate:
         r, dx, dy, dz = coefficients
         if r <= 0:
             return 1e10
-        delta = self.surface.sag(x, y) - Sphere(r, dx, dy, dz).sag(x, y)
+        delta = self.sag(x, y) - Sphere(r, dx, dy, dz).sag(x, y)
         return np.mean(delta ** 2)
 
     def interferogram(self):
