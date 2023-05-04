@@ -71,13 +71,19 @@ class Surface:
     def spherical_parameters(cls, r, dx, dy, dz):
         raise NotImplementedError
 
-    def __init__(self, dx, dy, dz=0, alpha=0, beta=0, gamma=0):
+    def __init__(self, dx=0, dy=0, dz=0, alpha=0, beta=0, gamma=0):
         self.dx = dx
         self.dy = dy
         self.dz = dz
         self.alpha = alpha
         self.beta = beta
         self.gamma = gamma
+
+    def __repr__(self):
+        return f'dx={self.dx:.3f} [mm] dy={self.dy:.3f} [mm] dz={self.dz:.3f} [mm] ' +\
+               f'alpha={np.degrees(self.alpha):.2f} [°] ' +\
+               f'beta={np.degrees(self.beta):.2f} [°] ' +\
+               f'gamma={np.degrees(self.gamma):.2f} [°]'
 
     def sag(self, x, y):
         if self.alpha == 0 and self.beta == 0 and self.gamma == 0:
@@ -119,6 +125,9 @@ class Toroidal(Surface):
         self.rc = rc
         self.rr = rr
 
+    def __repr__(self):
+        return f'Rc={self.rc:.3f} Rr={self.rr:.3f} ' + super().__repr__()
+
     def _zemax_sag(self, x, y):
         c = 1 / self.rc
         y2 = y ** 2
@@ -139,6 +148,9 @@ class EllipticalGrating(Surface):
         self.b = b
         self.c = c
 
+    def __repr__(self):
+        return f'a={self.a:.3f} [mm-1] b={self.b:.3f} [mm-1] c={self.b:.3f} [mm] ' + super().__repr__()
+
     def _zemax_sag(self, x, y):
         u2 = (self.a * x) ** 2 + (self.b * y) ** 2
         return u2 * self.c / (1 + np.sqrt(1 - u2))
@@ -155,6 +167,9 @@ class Standard(Surface):
         self.r = r
         self.k = k
 
+    def __repr__(self):
+        return f'R={self.r:.3f} [mm] k={self.k:.3f} ' + super().__repr__()
+
     def _zemax_sag(self, x, y):
         c = 1 / self.r
         r2 = x ** 2 + y ** 2
@@ -169,6 +184,9 @@ class Sphere(Standard):
 
     def __init__(self, r, *args):
         super().__init__(r, 0, *args)
+
+    def __repr__(self):
+        return f'R={self.r:.3f} [mm] ' + super().__repr__()
 
 
 class Aperture:

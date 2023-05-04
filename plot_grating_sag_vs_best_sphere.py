@@ -1,3 +1,4 @@
+import os
 from optics import sw_substrate, lw_substrate
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -31,4 +32,4 @@ for name, substrate, ax_row in zip(('SW', 'LW'), (sw_substrate, lw_substrate), a
 
 plt.tight_layout()
 
-fig.savefig(outpath + 'best_sphere.png', format='png', transparent=False)
+fig.savefig(os.path.join(outpath, 'best_sphere.png'), transparent=False)
