@@ -1,9 +1,42 @@
 import numpy as np
 from numpy import ma
 from scipy.optimize import minimize
+from scipy.interpolate import griddata
+
+
+def rotation_matrix(angle, axis):
+    """
+    Returns a rotation matrix about the specified axis (z=0, y=1, x=2) for the
+    specified angle (in radians).
+    """
+
+    cos = np.cos(angle)
+    sin = np.sin(angle)
+
+    if axis == 0:  # Rz
+        matrix = np.array([[cos, -sin, 0, 0],
+                           [sin, cos, 0, 0],
+                           [0, 0, 1, 0],
+                           [0, 0, 0, 1]])
+    elif axis == 1:  # Ry
+        matrix = np.array([[cos, 0, sin, 0],
+                           [0, 1, 0, 0],
+                           [-sin, 0, cos, 0],
+                           [0, 0, 0, 1]])
+    elif axis == 2:  # Rx
+        matrix = np.array([[1, 0, 0, 0],
+                           [0, cos, -sin, 0],
+                           [0, sin, cos, 0],
+                           [0, 0, 0, 1]])
+
+    return matrix
 
 
 def sphere_from_four_points(p1, p2, p3, p4):
+    """
+    Adapted from https: // stackoverflow.com / questions / 37449046 / how - to - calculate - the - sphere - center -
+    with-4 - points
+    """
     U = lambda a, b, c, d, e, f, g, h: (a.z - b.z)*(c.x*d.y - d.x*c.y) - (e.z - f.z)*(g.x*h.y - h.x*g.y)
     D = lambda x, y, a, b, c: a.__getattribute__(x)*(b.__getattribute__(y) - c.__getattribute__(y)) +\
                               b.__getattribute__(x)*(c.__getattribute__(y) - a.__getattribute__(y)) +\
@@ -47,6 +80,31 @@ class Surface:
         self.gamma = gamma
 
     def sag(self, x, y):
+        if self.alpha == 0 and self.beta == 0 and self.gamma == 0:
+            return self.dz + self._zemax_sag(x - self.dx, y - self.dy)
+        else:
+            z = np.zeros(x.size)
+            xyz = np.stack((x.ravel(), y.ravel(), z.ravel(), np.ones(x.size)))
+
+            rx = rotation_matrix(self.alpha, 0)
+            ry = rotation_matrix(self.beta, 1)
+            rz = rotation_matrix(self.gamma, 2)
+            sxyz = np.array([[1, 0, 0, -self.dx],
+                             [0, 1, 0, -self.dy],
+                             [0, 0, 1, -self.dz],
+                             [0, 0, 0, 1]])
+            matrix = rz @ ry @ rx @ sxyz
+            nx, ny, _, _ = matrix @ xyz
+
+            nz = self._zemax_sag(nx, ny)
+
+            xyz = np.stack((nx, ny, nz, np.ones(x.size)))
+            matrix = np.linalg.inv(matrix)
+            nx, ny, nz, _ = matrix @ xyz
+
+            return griddata((nx, ny), nz, (x, y), method='nearest')
+
+    def _zemax_sag(self, x, y):
         raise NotImplementedError
 
 
@@ -61,12 +119,12 @@ class Toroidal(Surface):
         self.rc = rc
         self.rr = rr
 
-    def sag(self, x, y):
+    def _zemax_sag(self, x, y):
         c = 1 / self.rc
-        y2 = (y - self.dy) ** 2
+        y2 = y ** 2
         zy = y2 * c / (1 + np.sqrt(1 - y2 * c ** 2))
-        zx = self.rr - zy - np.sqrt((self.rr - zy) ** 2 - (x - self.dx) ** 2)
-        return self.dz + zx + zy
+        zx = self.rr - zy - np.sqrt((self.rr - zy) ** 2 - x ** 2)
+        return zx + zy
 
 
 class EllipticalGrating(Surface):
@@ -81,9 +139,9 @@ class EllipticalGrating(Surface):
         self.b = b
         self.c = c
 
-    def sag(self, x, y):
-        u2 = (self.a * (x - self.dx)) ** 2 + (self.b * (y - self.dy)) ** 2
-        return self.dz + u2 * self.c / (1 + np.sqrt(1 - u2))
+    def _zemax_sag(self, x, y):
+        u2 = (self.a * x) ** 2 + (self.b * y) ** 2
+        return u2 * self.c / (1 + np.sqrt(1 - u2))
 
 
 class Standard(Surface):
@@ -97,10 +155,10 @@ class Standard(Surface):
         self.r = r
         self.k = k
 
-    def sag(self, x, y):
+    def _zemax_sag(self, x, y):
         c = 1 / self.r
-        r2 = (x - self.dx) ** 2 + (y - self.dy) ** 2
-        return self.dz + r2 * c / (1 + np.sqrt(1 - (1 + self.k) * r2 * c ** 2))
+        r2 = x ** 2 + y ** 2
+        return r2 * c / (1 + np.sqrt(1 - (1 + self.k) * r2 * c ** 2))
 
 
 class Sphere(Standard):
@@ -176,15 +234,18 @@ class Substrate:
             self._best_sphere = self.find_best_surface(Sphere)
         return self._best_sphere
 
-    def find_best_surface(self, surface_class=Sphere):
+    def find_best_surface(self, surface_class=Sphere, tilt=False):
         x, y = self.meshgrid()
         x_mean, y_mean = x.mean(), y.mean()
         points = []
         for px, py in zip((x.min(), x.max(), x_mean, x_mean), (y_mean, y_mean, y.min(), y.max())):
             points.append(Point(px, py, self.surface.sag(px, py)))
         x0, y0, z0, r0 = sphere_from_four_points(*points)
+        initial_parameters = surface_class.spherical_parameters(r0, x0, y0, z0 - r0)
+        if tilt:
+            initial_parameters = initial_parameters + (0.0, 0.0, 0.0)
         mini = minimize(self._surface_min,
-                        np.array(surface_class.spherical_parameters(r0, x0, y0, z0 - r0)),
+                        np.array(initial_parameters),
                         args=(x, y, surface_class), method='Powell')
         return surface_class(*mini.x)
 
