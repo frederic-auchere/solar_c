@@ -11,17 +11,13 @@ fig, axes = plt.subplots(2, 2, figsize=(9, 12))
 
 for name, substrate, ax_row in zip(('SW', 'LW'), (sw_substrate, lw_substrate), axes):
 
-    x, y, = substrate.meshgrid()
-    ellipse_z = substrate.sag(x, y)
+    ellipse_z = substrate.sag()
 
     surface_names = ['toroidal', 'conic']
     for ax, surface_type, surface_name in zip(ax_row, (Toroidal, Standard), surface_names):
         best_surface = substrate.find_best_surface(surface_type, tilt=True)
-        diff = (substrate.sag(x, y) - best_surface.sag(x, y))*1e6
-        im = ax.imshow(diff, extent=[substrate.aperture.dx - substrate.aperture.x_width / 2,
-                                     substrate.aperture.dx + substrate.aperture.x_width / 2,
-                                     substrate.aperture.dy - substrate.aperture.y_width / 2,
-                                     substrate.aperture.dy + substrate.aperture.y_width / 2], origin='lower')
+        diff = (substrate.sag() - best_surface.sag(substrate.grid()))*1e6
+        im = ax.imshow(diff, extent=substrate.aperture.limits, origin='lower')
         divider = make_axes_locatable(ax)
         cax = divider.append_axes('right', size='5%', pad=0.1)
         fig.colorbar(im, cax=cax, label='sag [nm]')

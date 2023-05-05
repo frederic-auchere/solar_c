@@ -9,9 +9,8 @@ fig, axes = plt.subplots(2, 3, figsize=(13, 12))
 
 for name, substrate, ax_row in zip(('SW', 'LW'), (sw_substrate, lw_substrate), axes):
 
-    x, y, = substrate.meshgrid()
-    ellipse_z = substrate.sag(x, y)
-    fit = substrate.best_sphere.sag(x, y)
+    ellipse_z = substrate.sag()
+    fit = substrate.best_sphere.sag(substrate.grid())
     delta = (ellipse_z - fit) * 1e6
     dl = substrate.interferogram()
 
@@ -19,10 +18,7 @@ for name, substrate, ax_row in zip(('SW', 'LW'), (sw_substrate, lw_substrate), a
     clabels = ["sag [mm]", "sag difference [nm]", "intensity"]
 
     for ax, data, title, clabel in zip(ax_row, (ellipse_z, delta, dl), titles, clabels):
-        im = ax.imshow(data, extent=[substrate.aperture.dx - substrate.aperture.x_width / 2,
-                                     substrate.aperture.dx + substrate.aperture.x_width / 2,
-                                     substrate.aperture.dy - substrate.aperture.y_width / 2,
-                                     substrate.aperture.dy + substrate.aperture.y_width / 2], origin='lower')
+        im = ax.imshow(data, extent=substrate.aperture.limits, origin='lower')
         divider = make_axes_locatable(ax)
         cax = divider.append_axes('right', size='5%', pad=0.1)
         fig.colorbar(im, cax=cax, label=clabel)

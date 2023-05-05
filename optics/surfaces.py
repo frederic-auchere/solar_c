@@ -105,7 +105,8 @@ class Surface(BaseSurface):
                f'beta={np.degrees(self.beta):.2f} [°] ' +\
                f'gamma={np.degrees(self.gamma):.2f} [°]'
 
-    def sag(self, x, y):
+    def sag(self, xy):
+        x, y = xy
         if self.alpha == 0 and self.beta == 0 and self.gamma == 0:
             return self.dz + self._zemax_sag(x - self.dx, y - self.dy)
         else:
@@ -219,6 +220,14 @@ class Aperture:
     def mask(self, x, y):
         raise NotImplementedError
 
+    @property
+    def limits(self):
+        x_min = self.dx - self.x_width / 2
+        x_max = self.dx + self.x_width / 2
+        y_min = self.dy - self.y_width / 2
+        y_max = self.dy + self.y_width / 2
+        return x_min, x_max, y_min, y_max
+
 
 class CircularAperture(Aperture):
     def __init__(self, diameter, dx=0.0, dy=0.0):
@@ -226,7 +235,7 @@ class CircularAperture(Aperture):
         self.diameter = diameter
 
     def mask(self, x, y):
-        return (x - self.dx) ** 2 + (y - self.dy)**2 > (self.diameter / 2) ** 2
+        return (x - self.dx) ** 2 + (y - self.dy) ** 2 > (self.diameter / 2) ** 2
 
 
 class RectangularAperture(Aperture):
@@ -247,24 +256,31 @@ class Substrate:
         self.aperture = aperture
         self.useful_area = useful_area
         self._best_sphere = None
+        self._grid = None
+        self._sag = None
 
-    def mask(self, x, y):
-        mask = self.aperture.mask(x, y)
-        return mask if self.useful_area is None else mask | self.useful_area.mask(x, y)
+    def mask(self, xy):
+        mask = self.aperture.mask(*xy)
+        return mask if self.useful_area is None else mask | self.useful_area.mask(*xy)
 
-    def sag(self, x, y):
-        return ma.masked_array(self.surface.sag(x, y), self.mask(x, y))
+    def sag(self, xy=None):
+        if xy is None:
+            if self._sag is None:
+                xy = self.grid()
+                self._sag = ma.masked_array(self.surface.sag(xy), self.mask(xy))
+            return self._sag
+        else:
+            return ma.masked_array(self.surface.sag(xy), self.mask(xy))
 
-    def meshgrid(self, nx=None, ny=None):
-        x_min = self.aperture.dx - self.aperture.x_width / 2
-        x_max = self.aperture.dx + self.aperture.x_width / 2
-        y_min = self.aperture.dy - self.aperture.y_width / 2
-        y_max = self.aperture.dy + self.aperture.y_width / 2
-        if nx is None:
-            nx = int((x_max - x_min) / 0.1)
-        if ny is None:
-            ny = int((y_max - y_min) / 0.1)
-        return np.meshgrid(np.linspace(x_min, x_max, nx), np.linspace(y_min, y_max, ny))
+    def grid(self, nx=None, ny=None):
+        if nx is not None or ny is not None or self._grid is None:
+            x_min, x_max, y_min, y_max = self.aperture.limits
+            if nx is None:
+                nx = int(self.aperture.x_width / 0.1)
+            if ny is None:
+                ny = int(self.aperture.y_width / 0.1)
+            self._grid = np.meshgrid(np.linspace(x_min, x_max, nx), np.linspace(y_min, y_max, ny))
+        return self._grid
 
     @property
     def best_sphere(self):
@@ -273,31 +289,31 @@ class Substrate:
         return self._best_sphere
 
     def find_best_surface(self, surface_class=Sphere, tilt=False):
-        x, y = self.meshgrid()
-        x_mean, y_mean = x.mean(), y.mean()
+        x_min, x_max, y_min, y_max = self.aperture.limits
         points = []
-        for px, py in zip((x.min(), x.max(), x_mean, x_mean), (y_mean, y_mean, y.min(), y.max())):
-            points.append(Point(px, py, self.surface.sag(px, py)))
+        for px, py in zip((x_min, x_max, self.aperture.dx, self.aperture.dx),
+                          (self.aperture.dy, self.aperture.dy, y_min, y_max)):
+            pz = self.surface.sag((px, py))
+            points.append(Point(px, py, pz))
         x0, y0, z0, r0 = sphere_from_four_points(*points)
         initial_parameters = surface_class.spherical_parameters(r0, x0, y0, z0 - r0)
         if tilt:
             initial_parameters = initial_parameters + (0.0, 0.0, 0.0)
         mini = minimize(self._surface_min,
                         np.array(initial_parameters),
-                        args=(x, y, surface_class), method='Powell')
+                        args=(surface_class,), method='Powell')
         return surface_class(*mini.x)
 
-    def _surface_min(self, coefficients, x, y, surface_class):
+    def _surface_min(self, coefficients, surface_class):
         try:
-            surface_sag = surface_class(*coefficients).sag(x, y)
+            surface_sag = surface_class(*coefficients).sag(self.grid())
         except RuntimeWarning:
             return 1e10
-        delta = self.sag(x, y) - surface_sag
-        return np.mean(delta ** 2)
+        surface_sag -= self.sag()
+        return np.mean(surface_sag ** 2)
 
     def interferogram(self, phase=0):
-        x, y = self.meshgrid()
-        delta = self.sag(x, y) - self.best_sphere.sag(x, y)
+        delta = self.sag() - self.best_sphere.sag(self.grid())
 
         wvl = 632e-6
         return (1 + np.cos(2 * np.pi * (phase + 2 * delta / wvl))) / 2
