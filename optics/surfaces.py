@@ -65,13 +65,33 @@ class Point:
         return np.sqrt(self.x ** 2 + self.y ** 2 + self.z ** 2)
 
 
-class Surface:
+class BaseSurface:
+
+    def __sub__(self, other):
+        return DifferenceSurface(self, other)
+
+
+class DifferenceSurface(BaseSurface):
+    def __init__(self, surface1, surface2):
+        super().__init__()
+        self.surface1 = surface1
+        self.surface2 = surface2
+
+    def __repr__(self):
+        return f'Surface 1: {self.surface1}\nSurface 2: {self.surface2}'
+
+    def sag(self, x, y):
+        return self.surface2.sag(x, y) - self.surface1.sag(x, y)
+
+
+class Surface(BaseSurface):
 
     @classmethod
     def spherical_parameters(cls, r, dx, dy, dz):
         raise NotImplementedError
 
     def __init__(self, dx=0, dy=0, dz=0, alpha=0, beta=0, gamma=0):
+        super().__init__()
         self.dx = dx
         self.dy = dy
         self.dz = dz
@@ -120,8 +140,8 @@ class Toroidal(Surface):
     def spherical_parameters(cls, r, *args):
         return r, r, *args
 
-    def __init__(self, rc, rr, *args):
-        super().__init__(*args)
+    def __init__(self, rc, rr, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.rc = rc
         self.rr = rr
 
@@ -142,8 +162,8 @@ class EllipticalGrating(Surface):
     def spherical_parameters(cls, r, *args):
         return r, r, r, *args
 
-    def __init__(self, a, b, c, *args):
-        super().__init__(*args)
+    def __init__(self, a, b, c, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.a = a
         self.b = b
         self.c = c
@@ -162,8 +182,8 @@ class Standard(Surface):
     def spherical_parameters(cls, r, *args):
         return r, 0, *args
 
-    def __init__(self, r, k, *args):
-        super().__init__(*args)
+    def __init__(self, r, k, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.r = r
         self.k = k
 
@@ -182,8 +202,8 @@ class Sphere(Standard):
     def spherical_parameters(cls, r, *args):
         return r, *args
 
-    def __init__(self, r, *args):
-        super().__init__(r, 0, *args)
+    def __init__(self, r, *args, **kwargs):
+        super().__init__(r, 0, *args, **kwargs)
 
     def __repr__(self):
         return f'R={self.r:.3f} [mm] ' + super().__repr__()
