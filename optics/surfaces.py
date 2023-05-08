@@ -37,6 +37,7 @@ def sphere_from_four_points(p1, p2, p3, p4):
     Adapted from https: // stackoverflow.com / questions / 37449046 / how - to - calculate - the - sphere - center -
     with-4 - points
     """
+
     U = lambda a, b, c, d, e, f, g, h: (a.z - b.z)*(c.x*d.y - d.x*c.y) - (e.z - f.z)*(g.x*h.y - h.x*g.y)
     D = lambda x, y, a, b, c: a.__getattribute__(x)*(b.__getattribute__(y) - c.__getattribute__(y)) +\
                               b.__getattribute__(x)*(c.__getattribute__(y) - a.__getattribute__(y)) +\
@@ -75,6 +76,7 @@ class BaseSurface:
 
 
 class DifferenceSurface(BaseSurface):
+
     def __init__(self, surface1, surface2):
         super().__init__()
         self.surface1 = surface1
@@ -83,17 +85,18 @@ class DifferenceSurface(BaseSurface):
     def __repr__(self):
         return f'Surface 1: {self.surface1}\nSurface 2: {self.surface2}'
 
-    def sag(self, x, y):
-        return self.surface2.sag(x, y) - self.surface1.sag(x, y)
+    def sag(self, xy):
+        return self.surface2.sag(xy) - self.surface1.sag(xy)
 
 
 class MeasuredSurface(BaseSurface):
+
     def __init__(self, x, y, sag):
         self._sag = sag
         self.grid = x, y
 
-    def sag(self, x, y):
-        return griddata(self.grid, self.sag, (x, y), method='nearest')
+    def sag(self, xy):
+        return griddata(self.grid, self.sag, xy, method='nearest')
 
 
 class ParametricSurface(BaseSurface):
@@ -228,6 +231,7 @@ class EllipticalGratingSubSphere(DifferenceSurface):
 
 
 class Aperture:
+
     def __init__(self, x_width, y_width, dx, dy):
         self.x_width = x_width
         self.y_width = y_width
@@ -247,6 +251,7 @@ class Aperture:
 
 
 class CircularAperture(Aperture):
+
     def __init__(self, diameter, dx=0.0, dy=0.0):
         super().__init__(diameter, diameter, dx, dy)
         self.diameter = diameter
@@ -256,6 +261,7 @@ class CircularAperture(Aperture):
 
 
 class RectangularAperture(Aperture):
+
     def __init__(self, x_width, y_width, dx=0.0, dy=0.0):
         super().__init__(x_width, y_width, dx, dy)
 
