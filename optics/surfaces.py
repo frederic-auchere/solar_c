@@ -110,7 +110,7 @@ class ParametricSurface(BaseSurface):
             nz = self._zemax_sag(nx, ny)
 
             xyz = np.stack((nx.ravel(), ny.ravel(), nz.ravel(), np.ones(x.size)))
-            matrix = np.concatenate(matrix, [[0, 0, 0, 1]])
+            matrix = np.concatenate((matrix, [[0, 0, 0, 1]]))
             matrix = np.linalg.inv(matrix)[:-1]
             nx, ny, nz = matrix @ xyz
 
