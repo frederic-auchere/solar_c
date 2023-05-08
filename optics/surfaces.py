@@ -70,6 +70,9 @@ class BaseSurface:
     def __sub__(self, other):
         return DifferenceSurface(self, other)
 
+    def sag(self, xy):
+        raise NotImplementedError
+
 
 class DifferenceSurface(BaseSurface):
     def __init__(self, surface1, surface2):
@@ -84,7 +87,16 @@ class DifferenceSurface(BaseSurface):
         return self.surface2.sag(x, y) - self.surface1.sag(x, y)
 
 
-class Surface(BaseSurface):
+class MeasuredSurface(BaseSurface):
+    def __init__(self, x, y, sag):
+        self._sag = sag
+        self.grid = x, y
+
+    def sag(self, x, y):
+        return griddata(self.grid, self.sag, (x, y), method='nearest')
+
+
+class ParametricSurface(BaseSurface):
 
     @classmethod
     def spherical_parameters(cls, r, dx, dy, dz):
@@ -135,7 +147,7 @@ class Surface(BaseSurface):
         raise NotImplementedError
 
 
-class Toroidal(Surface):
+class Toroidal(ParametricSurface):
 
     @classmethod
     def spherical_parameters(cls, r, *args):
@@ -157,7 +169,7 @@ class Toroidal(Surface):
         return zx + zy
 
 
-class EllipticalGrating(Surface):
+class EllipticalGrating(ParametricSurface):
 
     @classmethod
     def spherical_parameters(cls, r, *args):
@@ -177,7 +189,7 @@ class EllipticalGrating(Surface):
         return u2 * self.c / (1 + np.sqrt(1 - u2))
 
 
-class Standard(Surface):
+class Standard(ParametricSurface):
 
     @classmethod
     def spherical_parameters(cls, r, *args):
@@ -208,6 +220,11 @@ class Sphere(Standard):
 
     def __repr__(self):
         return f'R={self.r:.3f} [mm] ' + super().__repr__()
+
+
+class EllipticalGratingSubSphere(DifferenceSurface):
+    def __init__(self, a, b, c, dxe, dye, r, dxs, dys, dzs):
+        super().__init__(EllipticalGrating(a, b, c, dxe, dye), Sphere(r, dxs, dys, dzs))
 
 
 class Aperture:
@@ -288,20 +305,20 @@ class Substrate:
             self._best_sphere = self.find_best_surface(Sphere)
         return self._best_sphere
 
-    def find_best_surface(self, surface_class=Sphere, tilt=False):
-        x_min, x_max, y_min, y_max = self.aperture.limits
-        points = []
-        for px, py in zip((x_min, x_max, self.aperture.dx, self.aperture.dx),
-                          (self.aperture.dy, self.aperture.dy, y_min, y_max)):
-            pz = self.surface.sag((px, py))
-            points.append(Point(px, py, pz))
-        x0, y0, z0, r0 = sphere_from_four_points(*points)
-        initial_parameters = surface_class.spherical_parameters(r0, x0, y0, z0 - r0)
-        if tilt:
-            initial_parameters = initial_parameters + (0.0, 0.0, 0.0)
-        mini = minimize(self._surface_min,
-                        np.array(initial_parameters),
-                        args=(surface_class,), method='Powell')
+    def find_best_surface(self, surface_class=Sphere, initial_parameters=None, tilt=False):
+        if initial_parameters is None:
+            x_min, x_max, y_min, y_max = self.aperture.limits
+            points = []
+            for px, py in zip((x_min, x_max, self.aperture.dx, self.aperture.dx),
+                              (self.aperture.dy, self.aperture.dy, y_min, y_max)):
+                pz = self.surface.sag((px, py))
+                points.append(Point(px, py, pz))
+            x0, y0, z0, r0 = sphere_from_four_points(*points)
+            initial_parameters = surface_class.spherical_parameters(r0, x0, y0, z0 - r0)
+            if tilt:
+                initial_parameters = initial_parameters + (0.0, 0.0, 0.0)
+
+        mini = minimize(self._surface_min, np.array(initial_parameters), args=(surface_class,), method='Powell')
         return surface_class(*mini.x)
 
     def _surface_min(self, coefficients, surface_class):
