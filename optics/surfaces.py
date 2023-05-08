@@ -95,8 +95,8 @@ class MeasuredSurface(BaseSurface):
         self._sag = sag
         self.grid = x, y
 
-    def sag(self, xy):
-        return griddata(self.grid, self.sag, xy, method='nearest')
+    def sag(self, xy, method='nearest', **kwargs):
+        return griddata(self.grid, self.sag, xy, method=method, **kwargs)
 
 
 class ParametricSurface(BaseSurface):
@@ -120,7 +120,7 @@ class ParametricSurface(BaseSurface):
                f'beta={np.degrees(self.beta):.2f} [°] ' +\
                f'gamma={np.degrees(self.gamma):.2f} [°]'
 
-    def sag(self, xy):
+    def sag(self, xy, method='nearest', **kwargs):
         x, y = xy
         if self.alpha == 0 and self.beta == 0 and self.gamma == 0:
             return self.dz + self._zemax_sag(x - self.dx, y - self.dy)
@@ -144,7 +144,7 @@ class ParametricSurface(BaseSurface):
             matrix = np.linalg.inv(matrix)
             nx, ny, nz, _ = matrix @ xyz
 
-            return griddata((nx, ny), nz, (x, y), method='nearest')
+            return griddata((nx, ny), nz, (x, y), method=method, **kwargs)
 
     def _zemax_sag(self, x, y):
         raise NotImplementedError
@@ -335,8 +335,9 @@ class Substrate:
         surface_sag -= self.sag()
         return np.mean(surface_sag ** 2)
 
-    def interferogram(self, phase=0):
-        delta = self.sag() - self.best_sphere.sag(self.grid())
+    def interferogram(self, phase=0, dx=0, dy=0):
+        sphere = Sphere(self.best_sphere.r, dx=dx, dy=dy)
+        delta = self.sag() - sphere.sag(self.grid())
 
         wvl = 632e-6
         return (1 + np.cos(2 * np.pi * (phase + 2 * delta / wvl))) / 2
