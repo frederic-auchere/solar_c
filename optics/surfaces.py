@@ -311,7 +311,7 @@ class Substrate:
             self._best_sphere = self.find_best_surface(Sphere)
         return self._best_sphere
 
-    def find_best_surface(self, surface_class=Sphere, initial_parameters=None, tilt=False):
+    def find_best_surface(self, surface_class=Sphere, tilt=False, initial_parameters=None, method='Powell', **kwargs):
         if initial_parameters is None:
             x_min, x_max, y_min, y_max = self.aperture.limits
             points = []
@@ -324,7 +324,7 @@ class Substrate:
             if tilt:
                 initial_parameters = initial_parameters + (0.0, 0.0, 0.0)
 
-        mini = minimize(self._surface_min, np.array(initial_parameters), args=(surface_class,), method='Powell')
+        mini = minimize(self._surface_min, np.array(initial_parameters), args=(surface_class,), method=method, **kwargs)
         return surface_class(*mini.x)
 
     def _surface_min(self, coefficients, surface_class):
