@@ -2,34 +2,7 @@ import numpy as np
 from numpy import ma
 from scipy.optimize import minimize
 from scipy.interpolate import griddata
-
-
-def rotation_matrix(angle, axis):
-    """
-    Returns a rotation matrix about the specified axis (z=0, y=1, x=2) for the
-    specified angle (in radians).
-    """
-
-    cos = np.cos(angle)
-    sin = np.sin(angle)
-
-    if axis == 0:  # Rz
-        matrix = np.array([[cos, -sin, 0, 0],
-                           [sin, cos, 0, 0],
-                           [0, 0, 1, 0],
-                           [0, 0, 0, 1]])
-    elif axis == 1:  # Ry
-        matrix = np.array([[cos, 0, sin, 0],
-                           [0, 1, 0, 0],
-                           [-sin, 0, cos, 0],
-                           [0, 0, 0, 1]])
-    elif axis == 2:  # Rx
-        matrix = np.array([[1, 0, 0, 0],
-                           [0, cos, -sin, 0],
-                           [0, sin, cos, 0],
-                           [0, 0, 0, 1]])
-
-    return matrix
+from scipy.spatial.transform import Rotation
 
 
 def sphere_from_four_points(p1, p2, p3, p4):
@@ -126,23 +99,20 @@ class ParametricSurface(BaseSurface):
             return self.dz + self._zemax_sag(x - self.dx, y - self.dy)
         else:
             z = np.zeros(x.size)
-            xyz = np.stack((x.ravel(), y.ravel(), z.ravel(), np.ones(x.size)))
-
-            rx = rotation_matrix(self.alpha, 0)
-            ry = rotation_matrix(self.beta, 1)
-            rz = rotation_matrix(self.gamma, 2)
-            sxyz = np.array([[1, 0, 0, -self.dx],
-                             [0, 1, 0, -self.dy],
-                             [0, 0, 1, -self.dz],
-                             [0, 0, 0, 1]])
-            matrix = rz @ ry @ rx @ sxyz
-            nx, ny, _, _ = matrix @ xyz
+            xyz = np.stack((x.ravel(), y.ravel(), z, np.ones(x.size)))
+            rotation = Rotation.from_euler('zyx', (-self.alpha, -self.beta, -self.gamma)).as_matrix()
+            translation = np.array([[1, 0, 0, -self.dx],
+                                    [0, 1, 0, -self.dy],
+                                    [0, 0, 1, -self.dz]])
+            matrix = rotation @ translation
+            nx, ny, _ = matrix @ xyz
 
             nz = self._zemax_sag(nx, ny)
 
-            xyz = np.stack((nx, ny, nz, np.ones(x.size)))
-            matrix = np.linalg.inv(matrix)
-            nx, ny, nz, _ = matrix @ xyz
+            xyz = np.stack((nx.ravel(), ny.ravel(), nz.ravel(), np.ones(x.size)))
+            matrix = np.concatenate(matrix, [[0, 0, 0, 1]])
+            matrix = np.linalg.inv(matrix)[:-1]
+            nx, ny, nz = matrix @ xyz
 
             return griddata((nx, ny), nz, (x, y), method=method, **kwargs)
 
@@ -226,8 +196,13 @@ class Sphere(Standard):
 
 
 class EllipticalGratingSubSphere(DifferenceSurface):
-    def __init__(self, a, b, c, dxe, dye, r, dxs, dys, dzs):
-        super().__init__(EllipticalGrating(a, b, c, dxe, dye), Sphere(r, dxs, dys, dzs))
+    def __init__(self, a, b, c, dx, dy, rs, dxs, dys, dzs):
+        super().__init__(EllipticalGrating(a, b, c, dx, dy), Sphere(rs, dxs, dys, dzs))
+
+
+class StandardSubSphere(DifferenceSurface):
+    def __init__(self, r, k, dx, dy, rs, dxs, dys, dzs):
+        super().__init__(Standard(r, k, dx, dy), Sphere(rs, dxs, dys, dzs))
 
 
 class Aperture:
@@ -336,7 +311,7 @@ class Substrate:
         return np.mean(surface_sag ** 2)
 
     def interferogram(self, phase=0, dx=0, dy=0):
-        sphere = Sphere(self.best_sphere.r, dx=dx, dy=dy)
+        sphere = Sphere(self.best_sphere.r, self.best_sphere.dx + dx, self.best_sphere.dy + dy, self.best_sphere.dz)
         delta = self.sag() - sphere.sag(self.grid())
 
         wvl = 632e-6
