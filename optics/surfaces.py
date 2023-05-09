@@ -307,8 +307,8 @@ class Substrate:
             surface_sag = surface_class(*coefficients).sag(self.grid())
         except RuntimeWarning:
             return 1e10
-        surface_sag -= self.sag()
-        return np.mean(surface_sag ** 2)
+        difference = self.sag() - surface_sag
+        return np.mean(difference ** 2)
 
     def interferogram(self, phase=0, dx=0, dy=0):
         sphere = Sphere(self.best_sphere.r, self.best_sphere.dx + dx, self.best_sphere.dy + dy, self.best_sphere.dz)
