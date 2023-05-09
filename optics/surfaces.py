@@ -88,10 +88,10 @@ class ParametricSurface(BaseSurface):
         self.gamma = gamma
 
     def __repr__(self):
-        return f'dx={self.dx:.3f} [mm] dy={self.dy:.3f} [mm] dz={self.dz:.3f} [mm] ' +\
-               f'alpha={np.degrees(self.alpha):.2f} [°] ' +\
-               f'beta={np.degrees(self.beta):.2f} [°] ' +\
-               f'gamma={np.degrees(self.gamma):.2f} [°]'
+        return f'dx={self.dx:.4f} [mm] dy={self.dy:.4f} [mm] dz={self.dz:.4f} [mm] ' +\
+               f'alpha={np.degrees(self.alpha):.4f} [°] ' +\
+               f'beta={np.degrees(self.beta):.4f} [°] ' +\
+               f'gamma={np.degrees(self.gamma):.4f} [°]'
 
     def sag(self, xy, method='nearest', **kwargs):
         x, y = xy
@@ -100,7 +100,7 @@ class ParametricSurface(BaseSurface):
         else:
             z = np.zeros(x.size)
             xyz = np.stack((x.ravel(), y.ravel(), z, np.ones(x.size)))
-            rotation = Rotation.from_euler('zyx', (-self.alpha, -self.beta, -self.gamma)).as_matrix()
+            rotation = Rotation.from_euler('zyx', (self.alpha, self.beta, self.gamma)).as_matrix()
             translation = np.array([[1, 0, 0, -self.dx],
                                     [0, 1, 0, -self.dy],
                                     [0, 0, 1, -self.dz]])
@@ -132,7 +132,7 @@ class Toroidal(ParametricSurface):
         self.rr = rr
 
     def __repr__(self):
-        return f'Rc={self.rc:.3f} Rr={self.rr:.3f} ' + super().__repr__()
+        return f'Rc={self.rc:.3f} [mm] Rr={self.rr:.3f} [mm] ' + super().__repr__()
 
     def _zemax_sag(self, x, y):
         c = 1 / self.rc
