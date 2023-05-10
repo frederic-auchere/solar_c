@@ -4,6 +4,7 @@ from optics.surfaces import Toroidal, Standard
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
+import time
 
 outpath = r"C:\Users\fauchere\Documents\01-Projects\02-Space\Solar C\EPSILON\Optics"
 
@@ -15,7 +16,10 @@ for name, substrate, ax_row in zip(('SW', 'LW'), (sw_substrate, lw_substrate), a
 
     surface_names = ['toroidal', 'conic']
     for ax, surface_type, surface_name in zip(ax_row, (Toroidal, Standard), surface_names):
-        best_surface = substrate.find_best_surface(surface_type, tilt=True)
+        t0 = time.time()
+        best_surface = substrate.find_best_surface(surface_type, tilt=False)
+        print(time.time() - t0)
+        print(best_surface)
         diff = (substrate.sag() - best_surface.sag(substrate.grid()))*1e6
         im = ax.imshow(diff, extent=substrate.aperture.limits, origin='lower')
         divider = make_axes_locatable(ax)
@@ -31,4 +35,4 @@ for name, substrate, ax_row in zip(('SW', 'LW'), (sw_substrate, lw_substrate), a
 
 plt.tight_layout()
 
-fig.savefig(os.path.join(outpath, 'ellipse_vs_conic_vs_toroidal.png'), transparent=False)
+# fig.savefig(os.path.join(outpath, 'ellipse_vs_conic_vs_toroidal.png'), transparent=False)

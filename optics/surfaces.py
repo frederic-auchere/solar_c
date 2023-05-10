@@ -21,7 +21,7 @@ def sphere_from_four_points(p1, p2, p3, p4):
     v = U(p3, p4, p1, p2, p4, p1, p2, p3)
     w = U(p1, p3, p4, p2, p2, p4, p1, p3)
     uvw = 2 * (u + v + w)
-    if uvw == 0.0:
+    if uvw == 0:
         raise ValueError('The points are coplanar')
     r1, r2, r3, r4 = p1.radius ** 2, p2.radius ** 2, p3.radius ** 2, p4.radius ** 2
     x0, y0, z0 = E('y', 'z'), E('z', 'x'), E('x', 'y')
@@ -307,8 +307,8 @@ class Substrate:
             surface_sag = surface_class(*coefficients).sag(self.grid())
         except RuntimeWarning:
             return 1e10
-        difference = self.sag() - surface_sag
-        return np.mean(difference ** 2)
+        surface_sag -= self.sag()
+        return np.mean(surface_sag[~self.sag().mask] ** 2)
 
     def interferogram(self, phase=0, dx=0, dy=0):
         sphere = Sphere(self.best_sphere.r, self.best_sphere.dx + dx, self.best_sphere.dy + dy, self.best_sphere.dz)
