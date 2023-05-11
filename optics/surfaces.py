@@ -1,8 +1,17 @@
+import numbers
 import numpy as np
 from numpy import ma
 from scipy.optimize import minimize
 from scipy.interpolate import griddata
 from scipy.spatial.transform import Rotation
+
+
+def _lad(array):
+    return np.mean(np.abs(array - np.mean(array)))
+
+
+def _rms(array):
+    return np.sqrt(np.mean(array ** 2))
 
 
 def sphere_from_four_points(p1, p2, p3, p4):
@@ -59,7 +68,7 @@ class DifferenceSurface(BaseSurface):
         return f'Surface 1: {self.surface1}\nSurface 2: {self.surface2}'
 
     def sag(self, xy):
-        return self.surface2.sag(xy) - self.surface1.sag(xy)
+        return self.surface1.sag(xy) - self.surface2.sag(xy)
 
 
 class MeasuredSurface(BaseSurface):
@@ -69,7 +78,12 @@ class MeasuredSurface(BaseSurface):
         self.grid = x, y
 
     def sag(self, xy, method='nearest', **kwargs):
-        return griddata(self.grid, self.sag, xy, method=method, **kwargs)
+        x, y = xy
+        if isinstance(x, numbers.Number):
+            x, y = np.array([x]), np.array([y])
+        xg, yg = self.grid
+        return griddata((xg.ravel(), yg.ravel()), self._sag.ravel(), (x.ravel(), y.ravel()),
+                        method=method, **kwargs).reshape(x.shape)
 
 
 class ParametricSurface(BaseSurface):
@@ -88,7 +102,7 @@ class ParametricSurface(BaseSurface):
         self.gamma = gamma
 
     def __repr__(self):
-        return f'dx={self.dx:.4f} [mm] dy={self.dy:.4f} [mm] dz={self.dz:.4f} [mm] ' +\
+        return f'dx={self.dx:.3f} [mm] dy={self.dy:.3f} [mm] dz={self.dz:.3f} [mm] ' +\
                f'alpha={np.degrees(self.alpha):.4f} [°] ' +\
                f'beta={np.degrees(self.beta):.4f} [°] ' +\
                f'gamma={np.degrees(self.gamma):.4f} [°]'
@@ -98,6 +112,8 @@ class ParametricSurface(BaseSurface):
         if self.alpha == 0 and self.beta == 0 and self.gamma == 0:
             return self.dz + self._zemax_sag(x - self.dx, y - self.dy)
         else:
+            if isinstance(x, numbers.Number):
+                x, y = np.array([x]), np.array([y])
             z = np.zeros(x.size)
             xyz = np.stack((x.ravel(), y.ravel(), z, np.ones(x.size)))
             rotation = Rotation.from_euler('zyx', (self.alpha, self.beta, self.gamma)).as_matrix()
@@ -114,7 +130,7 @@ class ParametricSurface(BaseSurface):
             matrix = np.linalg.inv(matrix)[:-1]
             nx, ny, nz = matrix @ xyz
 
-            return griddata((nx, ny), nz, (x, y), method=method, **kwargs)
+            return griddata((nx, ny), nz, (x, y), method=method, **kwargs).reshape(x.shape)
 
     def _zemax_sag(self, x, y):
         raise NotImplementedError
@@ -190,9 +206,6 @@ class Sphere(Standard):
 
     def __init__(self, r, *args, **kwargs):
         super().__init__(r, 0, *args, **kwargs)
-
-    def __repr__(self):
-        return f'R={self.r:.3f} [mm] ' + super().__repr__()
 
 
 class EllipticalGratingSubSphere(DifferenceSurface):
@@ -286,7 +299,9 @@ class Substrate:
             self._best_sphere = self.find_best_surface(Sphere)
         return self._best_sphere
 
-    def find_best_surface(self, surface_class=Sphere, tilt=False, initial_parameters=None, method='Powell', **kwargs):
+    def find_best_surface(self, surface_class=Sphere, tilt=False, initial_parameters=None,
+                          method='Powell', objective='rms', **kwargs):
+        objectives = {'rms': _rms, 'lad': _lad, 'std': np.std}
         if initial_parameters is None:
             x_min, x_max, y_min, y_max = self.aperture.limits
             points = []
@@ -299,16 +314,17 @@ class Substrate:
             if tilt:
                 initial_parameters = initial_parameters + (0.0, 0.0, 0.0)
 
-        mini = minimize(self._surface_min, np.array(initial_parameters), args=(surface_class,), method=method, **kwargs)
+        mini = minimize(self._surface_min, np.array(initial_parameters),
+                        args=(surface_class, objectives[objective]), method=method, **kwargs)
         return surface_class(*mini.x)
 
-    def _surface_min(self, coefficients, surface_class):
+    def _surface_min(self, coefficients, surface_class, objective=_rms):
         try:
             surface_sag = surface_class(*coefficients).sag(self.grid())
         except RuntimeWarning:
             return 1e10
-        surface_sag -= self.sag()
-        return np.mean(surface_sag[~self.sag().mask] ** 2)
+        surface_sag -= self.sag().data
+        return objective(surface_sag[~self.sag().mask])
 
     def interferogram(self, phase=0, dx=0, dy=0):
         sphere = Sphere(self.best_sphere.r, self.best_sphere.dx + dx, self.best_sphere.dy + dy, self.best_sphere.dz)
