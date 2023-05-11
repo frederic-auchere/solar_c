@@ -59,20 +59,26 @@ def read_psix(file):
 
 class SagData:
 
-    def __init__(self, file, gx, gy=None, dx=0, dy=0, theta=0, binning=1):
+    def __init__(self, file, gx, gy=None, dx=0, dy=0, theta=0, binning=1, auto_center=True):
         self.file = file
         _, sag = read_asc(file)
-        self._sag = sag if binning == 1 else rebin(sag, (sag.shape[0] // binning, sag.shape[1] // binning))
+        self.sag = sag if binning == 1 else rebin(sag, (sag.shape[0] // binning, sag.shape[1] // binning))
         self.gx = gx * binning
         self.gy = gx if gy is None else gy * binning
-        self.dx = dx / binning
-        self.dy = dy / binning
         self.theta = np.radians(theta)
-        y, x = np.indices(self._sag.shape)
+        y, x = np.indices(self.sag.shape)
+        if auto_center:
+            valid = np.isfinite(self.sag)
+            self.dx = np.mean(x[valid])
+            self.dy = np.mean(y[valid])
+        else:
+            self.dx = dx / binning
+            self.dy = dy / binning
         xy = np.stack((x.ravel(), y.ravel(), np.ones(x.size)))
-        cos, sin = np.cos(theta), np.sin(theta)
-        translation = np.array([[self.gx, 0, self.dx * self.gx],
-                                [0, self.gy, self.dy * self.gy]])
+        cos, sin = np.cos(self.theta), np.sin(self.theta)
+        translation = np.array([[self.gx, 0, -self.dx * self.gx],
+                                [0, self.gy, -self.dy * self.gy]])
         rotation = np.array([[+cos, sin],
                              [-sin, cos]])
-        self.grid = rotation @ translation @ xy
+        x, y = rotation @ translation @ xy
+        self.grid = x.reshape(self.sag.shape), y.reshape(self.sag.shape)
