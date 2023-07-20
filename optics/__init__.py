@@ -1,4 +1,4 @@
-from .surfaces import EllipticalGrating, CircularAperture, RectangularAperture, Substrate, Sphere
+from .surfaces import EllipticalGrating, Standard, CircularAperture, RectangularAperture, Substrate, Sphere
 
 # Useful area defined in the (x, y) plane of the EGA coordinate system, i.e. in the middle of the two halves
 useful_area = CircularAperture(34.8)

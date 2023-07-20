@@ -7,7 +7,7 @@ file = r"C:\Users\fauchere\Desktop\HRI-P2_022.5d_174744_002.asc"
 
 gx = ((1518.1 + 3.54350)/1518.1)*0.078797149
 gy = ((1518.1 + 3.54350)/1518.1)*0.078717716
-sag_data = SagData(file, gx=gx, gy=gy, theta=22.5, binning=4)
+sag_data = SagData(file, gx=gx, gy=gy, theta=22.5, binning=1)
 
 measured_surface = MeasuredSurface(*sag_data.grid, sag_data.sag)
 aperture = CircularAperture(66)

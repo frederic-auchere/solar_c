@@ -50,6 +50,8 @@ class Point:
 
 class BaseSurface:
 
+    name = ''
+
     def __sub__(self, other):
         return DifferenceSurface(self, other)
 
@@ -148,7 +150,7 @@ class Toroidal(ParametricSurface):
         self.rr = rr
 
     def __repr__(self):
-        return f'Rc={self.rc:.3f} [mm] Rr={self.rr:.3f} [mm] ' + super().__repr__()
+        return f'Rc={self.rc:.3f} [mm] Rr={self.rr:.3f} [mm] {super().__repr__()}'
 
     def _zemax_sag(self, x, y):
         c = 1 / self.rc
@@ -171,7 +173,7 @@ class EllipticalGrating(ParametricSurface):
         self.c = c
 
     def __repr__(self):
-        return f'a={self.a:.3f} [mm-1] b={self.b:.3f} [mm-1] c={self.b:.3f} [mm] ' + super().__repr__()
+        return f'a={self.a:.3f} [mm-1] b={self.b:.3f} [mm-1] c={self.b:.3f} [mm] {super().__repr__()}'
 
     def _zemax_sag(self, x, y):
         u2 = (self.a * x) ** 2 + (self.b * y) ** 2
@@ -190,12 +192,12 @@ class Standard(ParametricSurface):
         self.k = k
 
     def __repr__(self):
-        return f'R={self.r:.3f} [mm] k={self.k:.3f} ' + super().__repr__()
+        return f'R={self.r:.3f} [mm] k={self.k:.3f} {super().__repr__()}'
 
     def _zemax_sag(self, x, y):
         c = 1 / self.r
         r2 = x ** 2 + y ** 2
-        return r2 * c / (1 + np.sqrt(1 - (1 + self.k) * r2 * c ** 2))
+        return r2 * c / (1 + np.sqrt(1 - (1 + self.k) * r2 * (c ** 2)))
 
 
 class Sphere(Standard):
@@ -209,11 +211,13 @@ class Sphere(Standard):
 
 
 class EllipticalGratingSubSphere(DifferenceSurface):
+
     def __init__(self, a, b, c, dx, dy, rs, dxs, dys, dzs):
         super().__init__(EllipticalGrating(a, b, c, dx, dy), Sphere(rs, dxs, dys, dzs))
 
 
 class StandardSubSphere(DifferenceSurface):
+
     def __init__(self, r, k, dx, dy, rs, dxs, dys, dzs):
         super().__init__(Standard(r, k, dx, dy), Sphere(rs, dxs, dys, dzs))
 
@@ -260,6 +264,12 @@ class RectangularAperture(Aperture):
                (cy > self.y_width / 2) | (cy < (-self.y_width / 2))
 
 
+class SquareAperture(RectangularAperture):
+
+    def __init__(self, width, dx=0.0, dy=0.0):
+        super().__init__(width, width, dx, dy)
+
+
 class Substrate:
 
     def __init__(self, surface, aperture, useful_area=None):
@@ -304,13 +314,14 @@ class Substrate:
         objectives = {'rms': _rms, 'lad': _lad, 'std': np.std}
         if initial_parameters is None:
             x_min, x_max, y_min, y_max = self.aperture.limits
-            points = []
+            points = []  # middle point + 3 points on the edges
             for px, py in zip((x_min, x_max, self.aperture.dx, self.aperture.dx),
-                              (self.aperture.dy, self.aperture.dy, y_min, y_max)):
+                              (self.aperture.dy, self.aperture.dy, self.aperture.dy, y_max)):
                 pz = self.surface.sag((px, py))
                 points.append(Point(px, py, pz))
             x0, y0, z0, r0 = sphere_from_four_points(*points)
-            initial_parameters = surface_class.spherical_parameters(r0, x0, y0, z0 - r0)
+            sign = np.sign(self.surface.r)
+            initial_parameters = surface_class.spherical_parameters(sign * r0, x0, y0, np.abs(z0) - r0)
             if tilt:
                 initial_parameters = initial_parameters + (0.0, 0.0, 0.0)
 
