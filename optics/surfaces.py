@@ -109,6 +109,9 @@ class ParametricSurface(BaseSurface):
                f'beta={np.degrees(self.beta):.4f} [°] ' +\
                f'gamma={np.degrees(self.gamma):.4f} [°]'
 
+    def primary_radius(self):
+        return NotImplementedError
+
     def sag(self, xy, method='nearest', **kwargs):
         x, y = xy
         if self.alpha == 0 and self.beta == 0 and self.gamma == 0:
@@ -152,6 +155,9 @@ class Toroidal(ParametricSurface):
     def __repr__(self):
         return f'Rc={self.rc:.3f} [mm] Rr={self.rr:.3f} [mm] {super().__repr__()}'
 
+    def primary_radius(self):
+        return self.rc
+
     def _zemax_sag(self, x, y):
         c = 1 / self.rc
         y2 = y ** 2
@@ -172,6 +178,9 @@ class EllipticalGrating(ParametricSurface):
         self.b = b
         self.c = c
 
+    def primary_radius(self):
+        return self.c
+
     def __repr__(self):
         return f'a={self.a:.3f} [mm-1] b={self.b:.3f} [mm-1] c={self.b:.3f} [mm] {super().__repr__()}'
 
@@ -190,6 +199,9 @@ class Standard(ParametricSurface):
         super().__init__(*args, **kwargs)
         self.r = r
         self.k = k
+
+    def primary_radius(self):
+        return self.r
 
     def __repr__(self):
         return f'R={self.r:.3f} [mm] k={self.k:.3f} {super().__repr__()}'
@@ -280,6 +292,18 @@ class Substrate:
         self._grid = None
         self._sag = None
 
+    def four_points(self):
+        min_radius = min((self.aperture.x_width, self.aperture.y_width))
+        # middle point
+        points = [Point(self.aperture.dx, self.aperture.dy, self.surface.sag((self.aperture.dx, self.aperture.dy)))]
+        # three points on a circle
+        for theta in (0, 120, 240):
+            x = self.aperture.dx + min_radius * np.cos(np.radians(theta))
+            y = self.aperture.dy + min_radius * np.sin(np.radians(theta))
+            z = self.surface.sag((x, y))
+            points.append(Point(x, y, z))
+        return points
+
     def mask(self, xy):
         mask = self.aperture.mask(*xy)
         return mask if self.useful_area is None else mask | self.useful_area.mask(*xy)
@@ -313,14 +337,8 @@ class Substrate:
                           method='Powell', objective='rms', **kwargs):
         objectives = {'rms': _rms, 'lad': _lad, 'std': np.std}
         if initial_parameters is None:
-            x_min, x_max, y_min, y_max = self.aperture.limits
-            points = []  # middle point + 3 points on the edges
-            for px, py in zip((x_min, x_max, self.aperture.dx, self.aperture.dx),
-                              (self.aperture.dy, self.aperture.dy, self.aperture.dy, y_max)):
-                pz = self.surface.sag((px, py))
-                points.append(Point(px, py, pz))
-            x0, y0, z0, r0 = sphere_from_four_points(*points)
-            sign = np.sign(self.surface.r)
+            x0, y0, z0, r0 = sphere_from_four_points(*self.four_points())
+            sign = np.sign(self.surface.primary_radius())
             initial_parameters = surface_class.spherical_parameters(sign * r0, x0, y0, np.abs(z0) - r0)
             if tilt:
                 initial_parameters = initial_parameters + (0.0, 0.0, 0.0)
