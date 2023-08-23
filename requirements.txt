@@ -1,5 +1,6 @@
-setuptools~=57.0.0
+setuptools~=65.5.1
 numpy~=1.21.4
 matplotlib~=3.5.0
 scipy~=1.7.2
 h5py~=3.8.0
+optics~=0.0.1
