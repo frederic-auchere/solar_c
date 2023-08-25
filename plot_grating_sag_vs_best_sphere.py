@@ -1,5 +1,5 @@
 import os
-from . import sw_substrate, lw_substrate
+from optical import sw_substrate, lw_substrate
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 

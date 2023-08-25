@@ -1,5 +1,5 @@
 import os
-from optics import sw_substrate, lw_substrate
+from . import sw_substrate, lw_substrate
 from optics.surfaces import Toroidal, Standard
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
