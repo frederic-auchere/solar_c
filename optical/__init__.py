@@ -1,27 +1,20 @@
-from optics import Standard, EllipticalGrating, CircularAperture, RectangularAperture, Substrate
+from optics import Standard, EllipticalGrating, Toroidal, CircularAperture, RectangularAperture, Substrate
 
 # Useful area defined in the (x, y) plane of the EGA coordinate system, i.e. in the middle of the two halves
 useful_area = CircularAperture(34.2)
 
-# Old definitions
-# lw_surface = EllipticalGrating(1 / 845.139, 1 / 846.299, 1356.579,
-#                                dy=2.002, alpha=0.3424, beta=0.7735, degrees=True)
-# lw_aperture = RectangularAperture(17.4, 34.8, dx=-17.4 / 2)
-# lw_substrate = Substrate(lw_surface, lw_aperture, useful_area)
-#
-# sw_surface = EllipticalGrating(1 / 730.504, 1 / 730.941, 1035.820,
-#                                dx=24.50720, dy=19.04215, dz=1.988, alpha=3.59312, beta=-4.05954, degrees=True)
-# sw_aperture = RectangularAperture(17.4, 34.8, dx=17.4 / 2)
-# sw_substrate = Substrate(sw_surface, sw_aperture, useful_area)
-
-lw_surface = EllipticalGrating(1 / 1008.95542, 1 / 1010.28118, 1933.25503,
-                               dx=0, dy=2.03864, dz=0,
-                               alpha=0.34650, beta=0.77334, gamma=0, degrees=True)
-lw_aperture = RectangularAperture(17.4, 34.8, dx=-17.4 / 2)
+lw_surface = EllipticalGrating(1 / 1008.9554166, 1 / 1010.2811818, 1933.255026,
+                               dx=0, dy=2.0386372, dz=0,
+                               alpha=0.346498, beta=0.7733422, gamma=0, degrees=True)
+lw_aperture = RectangularAperture(17.4, 34.8, dx=-17.4 / 2 - 0.15 / 2)
 lw_substrate = Substrate(lw_surface, lw_aperture, useful_area)
+dummy_lw_aperture = RectangularAperture(61.925, 86.188, dx=-61.925 / 2 - 0.15 / 2 + 20)
+dummy_lw_substrate = Substrate(lw_substrate.best_sphere, dummy_lw_aperture)
 
-sw_surface = Standard(516.0144, -0.517006,
-                      dx=33.05438, dy=15.31495, dz=2.6241,
-                      alpha=3.18010, beta=-5.31673, gamma=0, degrees=True)
-sw_aperture = RectangularAperture(17.4, 34.8, dx=17.4 / 2)
+sw_surface = Standard(516.0274, -0.522870,
+                      dx=31.8380922, dy=15.0690780, dz=2.446336,
+                      alpha=3.1515375, beta=-5.0875302, gamma=0, degrees=True)
+sw_aperture = RectangularAperture(17.4, 34.8, dx=17.4 / 2 + 0.15 / 2)
 sw_substrate = Substrate(sw_surface, sw_aperture, useful_area)
+dummy_sw_aperture = RectangularAperture(61.925, 86.188, dx=61.925 / 2 + 0.15 / 2 - 20)
+dummy_sw_substrate = Substrate(sw_substrate.best_sphere, dummy_sw_aperture)
