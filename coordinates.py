@@ -1,7 +1,7 @@
 import numpy as np
 from optical import lw_surface, sw_surface
 
-for surface, name in zip([lw_surface, sw_surface], ['LW', 'SW']):
+for surface, name in zip([sw_surface, lw_surface], ['SW', 'LW', 'LW torus']):
 
     grating_to_ega_matrix = surface.inverse_rotation_matrix()
 
@@ -27,12 +27,19 @@ for surface, name in zip([lw_surface, sw_surface], ['LW', 'SW']):
     x_proj_xi_x_to_xz = np.degrees(np.arctan(np.dot(xi_x, z)/np.dot(xi_x, x)))
     z_proj_xi_z_to_xz = np.degrees(np.arctan(np.dot(xi_z, x)/np.dot(xi_z, z)))
 
-
+    print('__________________________________________')
     print(name)
+    np.set_printoptions(precision=6, suppress=True)
+    print('EGA to grating')
+    print(surface.rotation_matrix())
+    print('Grating to EGA')
+    print(grating_to_ega_matrix)
+    np.set_printoptions(precision=9, suppress=True)
     prefix = 'xi' if name == 'SW' else 'eta'
-    print(f'Tx={Tx:.5f}°')
-    print(f'Ty={Ty:.5f}°')
-    print(f'Tz={Tz:.5f}°')
+    print(f'Tx={Tx:.6f}°')
+    print(f'Ty={Ty:.6f}°')
+    print(f'Tz={Tz:.6f}°')
+    print(f'Roll {np.degrees(np.arccos(np.dot(xi_x, x))):.5f}°')
     print(f'Plan XY: angle (X, $\\{prefix}_x$)={x_proj_xi_x_to_xy:.5f}°')
     print(f'Plan XY: angle (Y, $\\{prefix}_y$)={y_proj_xi_y_to_xy:.5f}°')
     print(f'Plan YZ: angle (Y, $\\{prefix}_y$)={y_proj_xi_y_to_yz:.5f}°')
