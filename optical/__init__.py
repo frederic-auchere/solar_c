@@ -1,7 +1,11 @@
 import copy
 from optics import Standard, EllipticalGrating, CircularAperture, RectangularAperture, Substrate
+from optics.geometry import Point
 
 # Useful area defined in the (x, y) plane of the EGA coordinate system, i.e. in the middle of the two halves
+
+# LW definitions
+
 useful_area = CircularAperture(34.2)
 
 lw_surface = EllipticalGrating(1 / 1008.9554166, 1 / 1010.2811818, 1933.255026,
@@ -22,6 +26,14 @@ rectangular_lw_substrate = Substrate(copy.deepcopy(lw_substrate.surface),
                                      copy.deepcopy(spherical_lw_aperture),
                                      name='Rectangular LW')
 
+xy1 = 17.925, 42.248
+xy2 = -40, 0
+xy3 = 17.925, -42.248
+rectangular_lw_substrate_fiducials = [Point(*xy, rectangular_lw_substrate.sag(xy)) for xy in [xy1, xy2, xy3]]
+
+
+# SW definitions
+
 sw_surface = Standard(516.0274, -0.522870,
                       dx=31.8380922, dy=15.0690780, dz=2.446336,
                       alpha=3.1515375, beta=-5.0875302, gamma=0, degrees=True)
@@ -40,3 +52,7 @@ rectangular_sw_substrate = Substrate(copy.deepcopy(sw_substrate.surface),
                                      copy.deepcopy(spherical_sw_aperture),
                                      name='Rectangular SW')
 
+xy1 = -17.925, 42.248
+xy2 = 40, 0
+xy3 = -17.925, -42.248
+rectangular_sw_substrate_fiducials = [Point(*xy, rectangular_lw_substrate.sag(xy)) for xy in [xy1, xy2, xy3]]
