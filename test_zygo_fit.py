@@ -1,26 +1,35 @@
-from optics.zygo import SagData
-from optics.surfaces import MeasuredSurface, Substrate, CircularAperture, StandardSubSphere
-import matplotlib.pyplot as plt
+import os
+import glob
+from optical.zygo import SagData, EGAFit
+from optics.surfaces import Substrate, CircularAperture, Standard, Sphere
 
-file = r"C:\Users\fauchere\Desktop\HRI-P2_022.5d_174744_002.asc"
-# file = r"C:\Users\fauchere\Desktop\HRI-P2_000.0d_145220_002.asc"
+path = r'C:\Users\fauchere\Documents\01-Projects\02-Space\Solar Orbiter\EUI\Design\HRI\Optics\Alignment\Interferometry\HRI-P\HRI-P2_20170125_IAS\Mesures'
+files = glob.glob(os.path.join(path, '*.asc'))[::8]
 
-gx = ((1518.1 + 3.54350)/1518.1)*0.078797149
-gy = ((1518.1 + 3.54350)/1518.1)*0.078717716
-sag_data = SagData(file, gx=gx, gy=gy, theta=22.5, binning=1)
+gx = ((1518.1 + 3.54350) / 1518.1) * 0.078797149
+gy = ((1518.1 + 3.54350) / 1518.1) * 0.078717716
 
-measured_surface = MeasuredSurface(*sag_data.grid, sag_data.sag)
-aperture = CircularAperture(66)
-useful_area = CircularAperture(54)
+sag_data = []
+for file in files:
+    theta = float(os.path.basename(file).split('_')[1][0:5])
+    sag_data.append(
+        SagData(file, gx=gx, gy=gy, theta=theta, binning=4, auto_crop=False)
+    )
 
-substrate = Substrate(measured_surface, aperture, useful_area)
-initial_parameters = [1518.1253, -1, 0, 80, 1518.1253, 0, 80, 0]
-no_bounds = (None, None)
-bounds = [(1518.1253, 1518.1253), (-1, -1), no_bounds, no_bounds, no_bounds, no_bounds, no_bounds, (0, 0)]
-best_surface = substrate.find_best_surface(StandardSubSphere,
-                                           initial_parameters=initial_parameters, bounds=bounds, objective='std')
-print(best_surface)
-residual = 1e6*(substrate.sag() - best_surface.sag(substrate.grid()))
-residual -= residual.mean()
-plt.imshow(residual, origin='lower')
-plt.colorbar()
+initial_surface = Standard(1518.1253, -1, 0, 80)
+aperture = CircularAperture(33)
+useful_area = CircularAperture(27)
+substrate = Substrate(initial_surface, aperture, useful_area)
+
+fitted_parameters = ['dx', 'dy']
+
+fitter = EGAFit(sag_data, substrate, fitted_parameters, Sphere(1518, 0, 80),
+                floating_reference=True, tol=1e-9, objective='std', method='powell')
+
+# fitter = EGAFit.from_xlsx(r"C:\Users\fauchere\Documents\02-Programmes\Python\scripts\solar_c\sw_substrates_template.xlsx")
+#
+fit = fitter.fit()
+print(fit[0].best_surface)
+print(fit[0].rms)
+#
+fitter.make_report()

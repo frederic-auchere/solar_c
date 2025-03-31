@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from optical import sw_substrate, lw_substrate
+from optical import sw_substrate, lw_substrate, rectangular_sw_substrate, rectangular_lw_substrate
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
@@ -19,7 +19,7 @@ for name, substrate, ax_row in zip(('SW', 'LW'), (sw_substrate, lw_substrate), a
 
     for ax, data, title, clabel in zip(ax_row, (substrate_z, delta, dl), titles, clabels):
         v_min, v_max = np.nanpercentile(data[~data.mask], [1, 99])
-        im = ax.imshow(data, extent=substrate.aperture.limits, origin='lower', vmin=v_min, vmax=v_max)
+        im = ax.imshow(data, extent=substrate.aperture.limits, origin='lower', vmin=v_min, vmax=v_max, cmap='hsv')
         divider = make_axes_locatable(ax)
         cax = divider.append_axes('right', size='5%', pad=0.1)
         fig.colorbar(im, cax=cax, label=clabel)
@@ -29,4 +29,4 @@ for name, substrate, ax_row in zip(('SW', 'LW'), (sw_substrate, lw_substrate), a
 
 plt.tight_layout()
 
-fig.savefig(os.path.join(outpath, 'best_sphere.png'), transparent=False)
+fig.savefig(os.path.join(outpath, 'rectangular_best_sphere.png'), transparent=False, dpi=300)

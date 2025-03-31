@@ -1,5 +1,5 @@
 import os
-from . import sw_substrate, lw_substrate
+from optical import sw_substrate, lw_substrate
 from optics.surfaces import Toroidal, Standard
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -17,21 +17,20 @@ for name, substrate, ax_row in zip(('SW', 'LW'), (sw_substrate, lw_substrate), a
     surface_names = ['toroidal', 'conic']
     for ax, surface_type, surface_name in zip(ax_row, (Toroidal, Standard), surface_names):
         t0 = time.time()
-        best_surface = substrate.find_best_surface(surface_type, tilt=False)
+        best_surface = substrate.find_best_surface(surface_type, tilt=False, tol=1e-10, objective='rms')
         print(time.time() - t0)
-        print(best_surface)
-        diff = (substrate.sag() - best_surface.sag(substrate.grid()))*1e6
-        im = ax.imshow(diff, extent=substrate.aperture.limits, origin='lower')
+        print(best_surface.best_surface)
+        im = ax.imshow(best_surface.residuals, extent=substrate.aperture.limits, origin='lower')
         divider = make_axes_locatable(ax)
         cax = divider.append_axes('right', size='5%', pad=0.1)
         fig.colorbar(im, cax=cax, label='sag [nm]')
         ax.set_xlabel('x (mm)')
         ax.set_ylabel('y (mm)')
         if surface_type is Toroidal:
-            parameters = f'Rc={best_surface.rc:6.3f} Rr={best_surface.rr:6.3f}'
+            parameters = f'Rc={best_surface.best_surface.rc:6.3f} Rr={best_surface.best_surface.rr:6.3f}'
         else:
-            parameters = f'R={best_surface.r:6.3f} k={best_surface.k:4.3f}'
-        ax.set_title(f'{name} vs. {surface_name} - {np.std(diff):4.2f} rms\n{parameters}')
+            parameters = f'R={best_surface.best_surface.r:6.3f} k={best_surface.best_surface.k:4.3f}'
+        ax.set_title(f'{name} vs. {surface_name} - {np.std(best_surface.residuals):4.2f} rms\n{parameters}')
 
 plt.tight_layout()
 
