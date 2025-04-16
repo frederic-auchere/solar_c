@@ -22,8 +22,8 @@ lw_substrate = Substrate(lw_surface,
 # Dummy substrate with spherical surface
 spherical_lw_aperture = RectangularAperture(61.925, 86.188, dx=-61.925 / 2 - 0.15 / 2 + 20)
 spherical_lw_substrate = Substrate(lw_substrate.best_sphere,
-                               copy.deepcopy(spherical_lw_aperture),
-                               name='Spherical LW',
+                                   copy.deepcopy(spherical_lw_aperture),
+                                   name='Spherical LW',
                                    x_grid_step=STEP)
 # Rectangular substrate pre-cutting to octagon
 rectangular_lw_substrate = Substrate(copy.deepcopy(lw_substrate.surface),
