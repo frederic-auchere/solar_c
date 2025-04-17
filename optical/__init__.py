@@ -10,7 +10,8 @@ STEP = None  # [mm] step size used to sample the optical surfaces of the substra
 
 lw_useful_area = PieAperture(34.2 / 2, 90, -90)  # useful area is a half circle
 
-# From Zemax definitions
+# From Zemax definitions in EUVST_v20230909.zmx
+# Description of the design in RSC-2022021C_SOLAR-C(EUVST)_Optical_Design_Summary.pdf
 lw_surface = EllipticalGrating(1 / 1008.9554166, 1 / 1010.2811818, 1933.255026,
                                dx=0, dy=2.0386372, dz=0,
                                alpha=0.346498, beta=0.7733422, gamma=0, degrees=True)
