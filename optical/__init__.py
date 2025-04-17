@@ -2,24 +2,26 @@ import copy
 from optics import Standard, EllipticalGrating, PieAperture, RectangularAperture, Substrate
 from optics.geometry import Point
 
-STEP = None  # mm
+STEP = None  # [mm] step size used to sample the optical surfaces of the substrates
 
 # Useful area defined in the (x, y) plane of the EGA coordinate system, i.e. in the middle of the two halves
 
 # LW definitions
 
-lw_useful_area = PieAperture(34.2 / 2, 90, -90)
+lw_useful_area = PieAperture(34.2 / 2, 90, -90)  # useful area is a half circle
 
+# From Zemax definitions
 lw_surface = EllipticalGrating(1 / 1008.9554166, 1 / 1010.2811818, 1933.255026,
                                dx=0, dy=2.0386372, dz=0,
                                alpha=0.346498, beta=0.7733422, gamma=0, degrees=True)
+# Aperture is modeled as a rectangle
 lw_aperture = RectangularAperture(17.4, 34.8, dx=-17.4 / 2 - 0.15 / 2)
 lw_substrate = Substrate(lw_surface,
                          lw_aperture,
                          lw_useful_area,
                          name='LW',
                          x_grid_step=STEP)
-# Dummy substrate with spherical surface
+# Protorype rectangular substrate with spherical surface
 spherical_lw_aperture = RectangularAperture(61.925, 86.188, dx=-61.925 / 2 - 0.15 / 2 + 20)
 spherical_lw_substrate = Substrate(lw_substrate.best_sphere,
                                    copy.deepcopy(spherical_lw_aperture),
