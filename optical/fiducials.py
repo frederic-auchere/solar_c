@@ -1,4 +1,4 @@
-from optical import rectangular_lw_substrate_fiducials, rectangular_sw_substrate_fiducials
+from optical.surfaces import EGASubstrate
 from optics.geometry import Polygon
 from itertools import permutations
 import numpy as np
@@ -22,7 +22,7 @@ def match_polygons(polygon, reference):
     perms = permutations(range(len(reference.edges)))
     permuted_polygons = [Polygon([polygon.vertices[p] for p in perm]) for perm in perms]
 
-    # For each permutation, compute the angles between the polygon and the reference polygon
+    # For each permutation, compute the angles between the edges of the polygon and those of the reference polygon
     theta = []
     for polygon in permuted_polygons:
         t = []
@@ -53,13 +53,7 @@ def match_polygons(polygon, reference):
     return {'g': g, 'dx': dx, 'dy': dy, 'theta': np.degrees(theta)}
 
 
-def ega_from_fiducials(measured_fiducials, grating):
+def ega_from_fiducials(measured_fiducials, substrate: EGASubstrate):
 
-    if grating == 'lw':
-        reference_fiducials = rectangular_lw_substrate_fiducials
-    elif grating == 'sw':
-        reference_fiducials = rectangular_sw_substrate_fiducials
-    else:
-        raise ValueError('grating must be either lw or sw')
-
-    return match_polygons(Polygon(measured_fiducials), Polygon(reference_fiducials))
+    substrate.matrix_to_normal()
+    return match_polygons(Polygon(measured_fiducials), Polygon(substrate.fiducials))

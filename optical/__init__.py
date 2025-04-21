@@ -1,6 +1,6 @@
 import copy
-from optics import Standard, EllipticalGrating, PieAperture, RectangularAperture, Substrate
-from optics.geometry import Point
+from optics import Standard, EllipticalGrating, PieAperture, RectangularAperture, Sphere
+from optical.surfaces import EGASubstrate
 
 STEP = None  # [mm] step size used to sample the optical surfaces of the substrates
 
@@ -17,28 +17,31 @@ lw_surface = EllipticalGrating(1 / 1008.9554166, 1 / 1010.2811818, 1933.255026,
                                alpha=0.346498, beta=0.7733422, gamma=0, degrees=True)
 # Aperture is modeled as a rectangle
 lw_aperture = RectangularAperture(17.4, 34.8, dx=-17.4 / 2 - 0.15 / 2)
-lw_substrate = Substrate(lw_surface,
-                         lw_aperture,
-                         lw_useful_area,
-                         name='LW',
-                         x_grid_step=STEP)
-# Protorype rectangular substrate with spherical surface
+lw_substrate = EGASubstrate(lw_surface,
+                            lw_aperture,
+                            lw_useful_area,
+                            name='LW',
+                            x_grid_step=STEP)
+# Prototype rectangular substrate with spherical surface
 spherical_lw_aperture = RectangularAperture(61.925, 86.188, dx=-61.925 / 2 - 0.15 / 2 + 20)
-spherical_lw_substrate = Substrate(lw_substrate.best_sphere,
-                                   copy.deepcopy(spherical_lw_aperture),
-                                   name='Spherical LW',
-                                   x_grid_step=STEP)
+spherical_lw_substrate = EGASubstrate(lw_substrate.best_sphere,
+                                      copy.deepcopy(spherical_lw_aperture),
+                                      name='Spherical LW',
+                                      x_grid_step=STEP)
 # Rectangular substrate pre-cutting to octagon
-rectangular_lw_substrate = Substrate(copy.deepcopy(lw_substrate.surface),
-                                     copy.deepcopy(spherical_lw_aperture),
-                                     name='Rectangular LW',
-                                     x_grid_step=STEP)
+rectangular_lw_substrate = EGASubstrate(copy.deepcopy(lw_substrate.surface),
+                                        copy.deepcopy(spherical_lw_aperture),
+                                        name='Rectangular LW',
+                                        x_grid_step=STEP,
+                                        fiducials=((17.925, 41.094), (-40, 0), (17.925, -41.094)))
 
-xy1 = 17.925, 41.094
-xy2 = -40, 0
-xy3 = 17.925, -41.094
-rectangular_lw_substrate_fiducials = [Point(*xy, float(rectangular_lw_substrate.sag(xy).data)) for xy in [xy1, xy2, xy3]]
-
+dx, dy = rectangular_lw_substrate.limits[1] - 12.845, 41.960 - rectangular_lw_substrate.limits[3]
+surface = Sphere(527.97, dx, dy)
+surface.dz += 20.14 - 20 + surface.sag((dx, dy))
+bertin_lw1_spherical = EGASubstrate(surface,
+                                    copy.deepcopy(spherical_lw_aperture),
+                                    name='LW1',
+                                    x_grid_step=STEP)
 
 # SW definitions
 
@@ -48,24 +51,31 @@ sw_surface = Standard(516.0274, -0.522870,
                       dx=31.8380922, dy=15.0690780, dz=2.446336,
                       alpha=3.1515375, beta=-5.0875302, gamma=0, degrees=True)
 sw_aperture = RectangularAperture(17.4, 34.8, dx=17.4 / 2 + 0.15 / 2)
-sw_substrate = Substrate(sw_surface,
-                         sw_aperture,
-                         sw_useful_area,
-                         name='SW',
-                         x_grid_step=STEP)
+sw_substrate = EGASubstrate(sw_surface,
+                            sw_aperture,
+                            sw_useful_area,
+                            name='SW',
+                            x_grid_step=STEP)
 # Dummy substrate with spherical surface
 spherical_sw_aperture = RectangularAperture(61.925, 86.188, dx=61.925 / 2 + 0.15 / 2 - 20)
-spherical_sw_substrate = Substrate(sw_substrate.best_sphere,
-                                   copy.deepcopy(spherical_sw_aperture),
-                                   name='Spherical SW',
-                                   x_grid_step=STEP)
+spherical_sw_substrate = EGASubstrate(sw_substrate.best_sphere,
+                                      copy.deepcopy(spherical_sw_aperture),
+                                      name='Spherical SW',
+                                      x_grid_step=STEP)
 # Rectangular substrate pre-cutting to octagon
-rectangular_sw_substrate = Substrate(copy.deepcopy(sw_substrate.surface),
-                                     copy.deepcopy(spherical_sw_aperture),
-                                     name='Rectangular SW',
-                                     x_grid_step=STEP)
+rectangular_sw_substrate = EGASubstrate(copy.deepcopy(sw_substrate.surface),
+                                        copy.deepcopy(spherical_sw_aperture),
+                                        name='Rectangular SW',
+                                        x_grid_step=STEP,
+                                        fiducials=((-17.925, 41.094), (40, 0), (-17.925, -41.094)))
 
-xy1 = -17.925, 41.094
-xy2 = 40, 0
-xy3 = -17.925, -41.094
-rectangular_sw_substrate_fiducials = [Point(*xy, float(rectangular_lw_substrate.sag(xy).data)) for xy in [xy1, xy2, xy3]]
+dx, dy = rectangular_sw_substrate.limits[0] + 5.773, 29.840 - rectangular_sw_substrate.limits[3]
+surface = Sphere(518.59, dx, dy)
+surface.dz += 19.99 - 20 + surface.sag((dx, dy))
+bertin_sw3_spherical = EGASubstrate(surface,
+                                    copy.deepcopy(spherical_sw_aperture),
+                                    name='SW3',
+                                    x_grid_step=STEP)
+
+bertin_lw_sphericals = bertin_lw1_spherical,
+bertin_sw_sphericals = bertin_sw3_spherical,
