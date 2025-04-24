@@ -79,3 +79,10 @@ bertin_sw3_spherical = EGASubstrate(surface,
 
 bertin_lw_sphericals = bertin_lw1_spherical,
 bertin_sw_sphericals = bertin_sw3_spherical,
+
+# Measured angles between mirrors of the rotation stage
+# See mirror_crown_measurements.xlsx
+mirror_crown_angles = [0, 022.5405, 45.022, 67.5556,
+                       90.0603, 112.4738, 134.9973, 157.5418,
+                       179.9889, 202.5545, 224.9925, 247.5120,
+                       269.9254, 292.5007, 315.0222, 337.5255]
