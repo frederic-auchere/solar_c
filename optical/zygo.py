@@ -36,7 +36,6 @@ class EGAFit(Fit):
 
         wb = load_workbook(xlsx_file)
         rows = wb.active.rows
-        substrate, substrate_aperture, substrate_useful_area, substrate_surface, path = None, None, None, None, None
         while True:
             try:
                 row = next(rows)
@@ -52,8 +51,8 @@ class EGAFit(Fit):
                 fitted_parameters = [] if parameters is None else [p.strip() for p in parameters.split(',')]
             elif "2.1 Surface" in row[0].value:
                 substrate_surface = read_table()[0]
-                type = substrate_surface.pop('type')
-                substrate_surface = surfaces.ParametricSurface.factory.create(type, **substrate_surface)
+                surface_type = substrate_surface.pop('type')
+                substrate_surface = surfaces.ParametricSurface.factory.create(surface_type, **substrate_surface)
             elif "2.2 Aperture" in row[0].value:
                 substrate_aperture = read_table()[0]
                 shape = substrate_aperture.pop('shape')
@@ -68,13 +67,12 @@ class EGAFit(Fit):
                                          fiducials=((xy['x1'], xy['y1']), (xy['x2'], xy['y2']), (xy['x3'], xy['y3'])))
             elif "3. Reference" in row[0].value:
                 reference = read_table()[0]
-                type = reference.pop('type')
-                reference = surfaces.ParametricSurface.factory.create(type, **reference)
+                surface_type = reference.pop('type')
+                reference = surfaces.ParametricSurface.factory.create(surface_type, **reference)
             elif "4.1 Path" in row[0].value:
                 row = next(rows)
                 path = '' if row[0].value is None else row[0].value
             elif "4.2 Data" in row[0].value:
-                #next(rows)  # Skips the 'Fiducials' row
                 sag_data = []
                 table = read_table()
                 fiducials = []
