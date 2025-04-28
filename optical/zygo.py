@@ -1,5 +1,12 @@
+import copy
+
 from optics.zygo import Fit, SagData
+from optical import fiducials
 from optics import surfaces
+from optics.geometry import Point, Polygon
+
+from optical.fiducials import ega_from_fiducials
+from optical.surfaces import EGASubstrate
 import os
 from openpyxl import load_workbook
 import matplotlib as mp
@@ -29,6 +36,7 @@ class EGAFit(Fit):
 
         wb = load_workbook(xlsx_file)
         rows = wb.active.rows
+        substrate, substrate_aperture, substrate_useful_area, substrate_surface, path = None, None, None, None, None
         while True:
             try:
                 row = next(rows)
@@ -54,6 +62,10 @@ class EGAFit(Fit):
                 substrate_useful_area = read_table()[0]
                 shape = substrate_useful_area.pop('shape')
                 substrate_useful_area = surfaces.Aperture.factory.create(shape + 'Aperture', **substrate_useful_area)
+            elif "2.4 Fiducials" in row[0].value:
+                xy = read_table()[0]
+                substrate = EGASubstrate(substrate_surface, substrate_aperture, substrate_useful_area,
+                                         fiducials=((xy['x1'], xy['y1']), (xy['x2'], xy['y2']), (xy['x3'], xy['y3'])))
             elif "3. Reference" in row[0].value:
                 reference = read_table()[0]
                 type = reference.pop('type')
@@ -62,13 +74,24 @@ class EGAFit(Fit):
                 row = next(rows)
                 path = '' if row[0].value is None else row[0].value
             elif "4.2 Data" in row[0].value:
+                #next(rows)  # Skips the 'Fiducials' row
                 sag_data = []
-                for d in read_table():
-                    file = os.path.join(path, d.pop('file'))
-                    sag_data.append(SagData(file, **d))
+                table = read_table()
+                fiducials = []
+                for row in table:
+                    fiducials.append(
+                        Polygon((Point(row.pop('x1'), row.pop('y1'), 0),
+                                 Point(row.pop('x2'), row.pop('y2'), 0),
+                                 Point(row.pop('x3'), row.pop('y3'), 0)))
+                    )
+                geometries = ega_from_fiducials(fiducials, substrate)
+                for row, geometry in zip(table, geometries):
+                    file = os.path.join(path, row.pop('file'))
+                    row.update(geometry)
+                    sag_data.append(SagData(file, **row))
 
         return cls(sag_data,
-                   surfaces.Substrate(substrate_surface, substrate_aperture, substrate_useful_area),
+                   copy.deepcopy(substrate),
                    fitted_parameters,
                    reference,
                    floating_reference=floating_reference, tol=tolerance, **options)

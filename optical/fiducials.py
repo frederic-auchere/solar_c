@@ -1,5 +1,5 @@
 from optical.surfaces import EGASubstrate
-from optics.geometry import Polygon
+from optics.geometry import Polygon, Point
 from itertools import permutations
 import numpy as np
 
@@ -22,15 +22,14 @@ def match_polygons(polygons, reference, offset_angles=None, absolute_angles=Fals
     if type(polygons) == Polygon:
         polygons = [polygons]
 
-    # Defines all possible permutations of vertices orders
-    # This allows the vertices of the polygons to be compared in any order
-    perms = permutations(range(len(reference.edges)))
-
     # Finds which permutation of vertices matches the reference polygon
     angles = []
     ordered_polygons = []
     for polygon in polygons:
 
+        # Defines all possible permutations of vertices orders
+        # This allows the vertices of the polygons to be compared in any order
+        perms = permutations(range(len(reference.edges)))
         permuted_polygons = [Polygon([polygon.vertices[p] for p in perm]) for perm in perms]
         # For each permutation, compute the angles between the edges of the polygon and those of the reference polygon
         theta = []
@@ -63,7 +62,7 @@ def match_polygons(polygons, reference, offset_angles=None, absolute_angles=Fals
     g = estimator([edge2.v.norm / edge1.v.norm for polygon in ordered_polygons
                    for edge1, edge2 in zip(polygon.edges, reference.edges)])
 
-    dx, dy = [], []
+    output = []
     for polygon, angle in zip(ordered_polygons, angles):
 
         # Scale and rotate the reference to the polygon
@@ -74,16 +73,21 @@ def match_polygons(polygons, reference, offset_angles=None, absolute_angles=Fals
         x, y = rotation_matrix @ xy
 
         # Compute the mean translation between the vertices of the polygon and those of the scaled and rotated reference
-        dx.append(estimator([v.x - x for v in polygon.vertices]))
-        dy.append(estimator([v.y - y for v in polygon.vertices]))
+        dx = estimator([v.x - x for v in polygon.vertices])
+        dy = estimator([v.y - y for v in polygon.vertices])
+
+        output.append({'gx': g, 'gy': g, 'dx': dx, 'dy': dy, 'theta': angle})
 
     if type(polygons) == Polygon:
-        dx, dy, angles = dx[0], dy[0], angles[0]
+        output = output[0]
 
-    return {'g': g, 'dx': dx, 'dy': dy, 'theta': angles}
+    return output
 
 
 def ega_from_fiducials(measured_fiducials, substrate: EGASubstrate):
 
-    substrate.matrix_to_normal()
-    return match_polygons(Polygon(measured_fiducials), Polygon(substrate.fiducials))
+    vertices = []
+    for v in substrate.fiducials.vertices:
+        x, y, _ = substrate.matrix_to_normal() @ (v.x, v.y, v.z, 1)
+        vertices.append(Point(x, y, 0))
+    return match_polygons(measured_fiducials, Polygon(vertices))
