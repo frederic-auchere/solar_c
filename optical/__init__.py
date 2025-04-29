@@ -6,7 +6,7 @@ STEP = None  # [mm] step size used to sample the optical surfaces of the substra
 
 # Useful area defined in the (x, y) plane of the EGA coordinate system, i.e. in the middle of the two halves
 
-# LW definitions
+#  LW definitions
 
 lw_useful_area = PieAperture(34.2 / 2, 90, -90)  # useful area is a half circle
 
@@ -35,6 +35,7 @@ rectangular_lw_substrate = EGASubstrate(copy.deepcopy(lw_substrate.surface),
                                         x_grid_step=STEP,
                                         fiducials=((17.925, 41.094), (-40, 0), (17.925, -41.094)))
 
+# LW1 substrate
 dx, dy = rectangular_lw_substrate.limits[1] - 12.845, 41.960 - rectangular_lw_substrate.limits[3]
 surface = Sphere(527.97, dx, dy)
 surface.dz += 20.14 - 20 + surface.sag((dx, dy))
@@ -43,6 +44,7 @@ bertin_lw1_spherical = EGASubstrate(surface,
                                     name='LW1',
                                     x_grid_step=STEP)
 
+# LW2 substrate
 dx, dy = rectangular_lw_substrate.limits[1] - 12.699, 42.010 - rectangular_lw_substrate.limits[3]
 surface = Sphere(525.24, dx, dy)
 surface.dz += 19.99 - 20 + surface.sag((dx, dy))
@@ -77,6 +79,7 @@ rectangular_sw_substrate = EGASubstrate(copy.deepcopy(sw_substrate.surface),
                                         x_grid_step=STEP,
                                         fiducials=((-17.925, 41.094), (40, 0), (-17.925, -41.094)))
 
+# SW3 substrate
 dx, dy = rectangular_sw_substrate.limits[0] + 5.773, 29.840 - rectangular_sw_substrate.limits[3]
 surface = Sphere(518.59, dx, dy)
 surface.dz += 19.99 - 20 + surface.sag((dx, dy))
