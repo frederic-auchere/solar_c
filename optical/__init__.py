@@ -43,6 +43,14 @@ bertin_lw1_spherical = EGASubstrate(surface,
                                     name='LW1',
                                     x_grid_step=STEP)
 
+dx, dy = rectangular_lw_substrate.limits[1] - 12.699, 42.010 - rectangular_lw_substrate.limits[3]
+surface = Sphere(525.24, dx, dy)
+surface.dz += 19.99 - 20 + surface.sag((dx, dy))
+bertin_lw2_spherical = EGASubstrate(surface,
+                                    copy.deepcopy(spherical_lw_aperture),
+                                    name='LW2',
+                                    x_grid_step=STEP)
+
 # SW definitions
 
 sw_useful_area = PieAperture(34.2 / 2, -90, 90)
@@ -77,7 +85,7 @@ bertin_sw3_spherical = EGASubstrate(surface,
                                     name='SW3',
                                     x_grid_step=STEP)
 
-bertin_lw_sphericals = bertin_lw1_spherical,
+bertin_lw_sphericals = bertin_lw1_spherical, bertin_lw2_spherical,
 bertin_sw_sphericals = bertin_sw3_spherical,
 
 # Measured angles between mirrors of the rotation stage

@@ -1,7 +1,6 @@
 import copy
 
 from optics.zygo import Fit, SagData
-from optical import fiducials
 from optics import surfaces
 from optics.geometry import Point, Polygon
 
