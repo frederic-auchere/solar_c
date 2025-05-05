@@ -6,6 +6,7 @@ from optics.geometry import Point, Polygon
 
 from optical.fiducials import ega_from_fiducials
 from optical.surfaces import EGASubstrate
+from optical import mirror_crown_angles
 import os
 from openpyxl import load_workbook
 import matplotlib as mp
@@ -75,13 +76,15 @@ class EGAFit(Fit):
                 sag_data = []
                 table = read_table()
                 fiducials = []
+                mirror_crown= []
                 for row in table:
+                    mirror_crown.append(mirror_crown_angles[row.pop('crown') - 1])
                     fiducials.append(
                         Polygon((Point(row.pop('x1'), row.pop('y1'), 0),
                                  Point(row.pop('x2'), row.pop('y2'), 0),
                                  Point(row.pop('x3'), row.pop('y3'), 0)))
                     )
-                geometries = ega_from_fiducials(fiducials, substrate)
+                geometries = ega_from_fiducials(fiducials, substrate, offset_angles=mirror_crown)
                 for row, geometry in zip(table, geometries):
                     file = os.path.join(path, row.pop('file'))
                     row.update(geometry)

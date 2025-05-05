@@ -84,10 +84,10 @@ def match_polygons(polygons, reference, offset_angles=None, absolute_angles=Fals
     return output
 
 
-def ega_from_fiducials(measured_fiducials, substrate: EGASubstrate):
+def ega_from_fiducials(measured_fiducials, substrate: EGASubstrate, **kwargs):
 
     vertices = []
     for v in substrate.fiducials.vertices:
         x, y, _ = substrate.matrix_to_normal() @ (v.x, v.y, v.z, 1)
         vertices.append(Point(x, y, 0))
-    return match_polygons(measured_fiducials, Polygon(vertices))
+    return match_polygons(measured_fiducials, Polygon(vertices), **kwargs)
