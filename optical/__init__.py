@@ -41,7 +41,7 @@ surface = Sphere(527.97, dx, dy)
 surface.dz += 20.14 - 20 + surface.sag((dx, dy))
 bertin_lw1_spherical = EGASubstrate(surface,
                                     copy.deepcopy(spherical_lw_aperture),
-                                    name='LW1',
+                                    name='LW SN1',
                                     x_grid_step=STEP)
 
 # LW2 substrate
@@ -50,8 +50,18 @@ surface = Sphere(525.24, dx, dy)
 surface.dz += 19.99 - 20 + surface.sag((dx, dy))
 bertin_lw2_spherical = EGASubstrate(surface,
                                     copy.deepcopy(spherical_lw_aperture),
-                                    name='LW2',
+                                    name='LW SN2',
                                     x_grid_step=STEP)
+
+# LW3 substrate
+dx, dy = rectangular_lw_substrate.limits[1] - 12.650, 41.870 - rectangular_lw_substrate.limits[3]
+surface = Sphere(526.30, dx, dy)
+surface.dz += 20.05 - 20 + surface.sag((dx, dy))
+bertin_lw3_spherical = EGASubstrate(surface,
+                                    copy.deepcopy(spherical_lw_aperture),
+                                    name='LW SN3',
+                                    x_grid_step=STEP)
+
 
 # SW definitions
 
@@ -85,11 +95,20 @@ surface = Sphere(518.59, dx, dy)
 surface.dz += 19.99 - 20 + surface.sag((dx, dy))
 bertin_sw3_spherical = EGASubstrate(surface,
                                     copy.deepcopy(spherical_sw_aperture),
-                                    name='SW3',
+                                    name='SW SN3',
                                     x_grid_step=STEP)
 
-bertin_lw_sphericals = bertin_lw1_spherical, bertin_lw2_spherical,
-bertin_sw_sphericals = bertin_sw3_spherical,
+# SW4 substrate
+dx, dy = rectangular_sw_substrate.limits[0] + 5.885, 29.773 - rectangular_sw_substrate.limits[3]
+surface = Sphere(516.20, dx, dy)
+surface.dz += 19.81 - 20 + surface.sag((dx, dy))
+bertin_sw4_spherical = EGASubstrate(surface,
+                                    copy.deepcopy(spherical_sw_aperture),
+                                    name='SW SN4',
+                                    x_grid_step=STEP)
+
+bertin_lw_sphericals = bertin_lw1_spherical, bertin_lw2_spherical, bertin_lw3_spherical
+bertin_sw_sphericals = bertin_sw3_spherical, bertin_sw4_spherical
 
 # Measured angles between mirrors of the rotation stage
 # See mirror_crown_measurements.xlsx
