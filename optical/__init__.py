@@ -106,9 +106,17 @@ bertin_sw4_spherical = EGASubstrate(surface,
                                     copy.deepcopy(spherical_sw_aperture),
                                     name='SW SN4',
                                     x_grid_step=STEP)
+# SW2 substrate
+dx, dy = rectangular_sw_substrate.limits[0] + 5.850, 29.899 - rectangular_sw_substrate.limits[3]
+surface = Sphere(518.64, dx, dy)
+surface.dz += 19.82 - 20 + surface.sag((dx, dy))
+bertin_sw2_spherical = EGASubstrate(surface,
+                                    copy.deepcopy(spherical_sw_aperture),
+                                    name='SW SN2',
+                                    x_grid_step=STEP)
 
 bertin_lw_sphericals = bertin_lw1_spherical, bertin_lw2_spherical, bertin_lw3_spherical
-bertin_sw_sphericals = bertin_sw3_spherical, bertin_sw4_spherical
+bertin_sw_sphericals = bertin_sw3_spherical, bertin_sw4_spherical, bertin_sw2_spherical
 
 # Measured angles between mirrors of the rotation stage
 # See mirror_crown_measurements.xlsx
