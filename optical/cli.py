@@ -8,7 +8,7 @@ def main(xlsx_file, outfile=None):
     fitter.make_report(outfile=outfile)
 
 
-def cli():
+def sfe():
     """
     Command line interface
     :return:
