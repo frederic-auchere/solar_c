@@ -4,9 +4,9 @@ from optics.zygo import Fit, SagData
 from optics import surfaces
 from optics.geometry import Point, Polygon
 
-from solar_c.optical.fiducials import ega_from_fiducials
-from solar_c.optical.surfaces import EGASubstrate
-from solar_c.optical import mirror_crown_angles
+from optical.fiducials import ega_from_fiducials
+from optical.surfaces import EGASubstrate
+from optical import mirror_crown_angles
 import os
 from openpyxl import load_workbook
 import matplotlib as mp

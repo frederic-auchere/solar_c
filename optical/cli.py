@@ -1,5 +1,5 @@
 import argparse
-from solar_c.optical.zygo import EGAFit
+from optical.zygo import EGAFit
 
 
 def main(xlsx_file, outfile=None):
