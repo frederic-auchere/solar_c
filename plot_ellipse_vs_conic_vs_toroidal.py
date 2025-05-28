@@ -1,4 +1,3 @@
-import os
 from optical import sw_substrate, lw_substrate
 from optics.surfaces import Toroidal, Standard
 import matplotlib.pyplot as plt

@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from optical import sw_substrate, lw_substrate, rectangular_sw_substrate, rectangular_lw_substrate
+from optical import sw_substrate, lw_substrate
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 

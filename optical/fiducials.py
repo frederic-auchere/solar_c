@@ -1,4 +1,4 @@
-from optical.surfaces import EGASubstrate
+from solar_c.optical.surfaces import EGASubstrate
 from optics.geometry import Polygon, Point
 from itertools import permutations
 import numpy as np
