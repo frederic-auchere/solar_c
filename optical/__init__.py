@@ -90,9 +90,9 @@ rectangular_sw_substrate = EGASubstrate(copy.deepcopy(sw_substrate.surface),
                                         fiducials=((-17.925, 41.094), (40, 0), (-17.925, -41.094)))
 
 # SW3 substrate
-dx, dy = rectangular_sw_substrate.limits[0] + 5.773, 29.840 - rectangular_sw_substrate.limits[3]
-surface = Sphere(518.59, dx, dy)
-surface.dz += 19.99 - 20 + surface.sag((dx, dy))
+dx, dy = rectangular_sw_substrate.limits[0] + 5.773, 29.880 - rectangular_sw_substrate.limits[3]
+surface = Sphere(517.77, dx, dy)
+surface.dz += 19.76 - 20 + surface.sag((dx, dy))
 bertin_sw3_spherical = EGASubstrate(surface,
                                     copy.deepcopy(spherical_sw_aperture),
                                     name='SW SN3',
