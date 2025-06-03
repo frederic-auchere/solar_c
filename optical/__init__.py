@@ -125,7 +125,7 @@ bertin_sw1_spherical = EGASubstrate(surface,
                                     x_grid_step=STEP)
 
 bertin_lw_sphericals = bertin_lw1_spherical, bertin_lw2_spherical, bertin_lw3_spherical
-bertin_sw_sphericals = bertin_sw3_spherical, bertin_sw4_spherical, bertin_sw2_spherical, bertin_sw1_spherical
+bertin_sw_sphericals = bertin_sw1_spherical, bertin_sw2_spherical, bertin_sw3_spherical, bertin_sw4_spherical
 
 # Measured angles between mirrors of the rotation stage
 # See mirror_crown_measurements.xlsx
