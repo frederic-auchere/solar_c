@@ -11,7 +11,7 @@ fig, axes = plt.subplots(2, 3, figsize=(13, 12))
 for name, substrate, ax_row in zip(('SW', 'LW'), (sw_substrate, lw_substrate), axes):
 
     substrate_z = substrate.sag()
-    delta = substrate.sag_from_sphere() * 1e6
+    delta = substrate.sag_from(substrate.best_sphere) * 1e6
     dl = substrate.interferogram()
 
     titles = [f"{name} z sag", f"from best sphere (R={substrate.best_sphere.r:3.2f} mm)", "Simulated interferogram"]
@@ -19,7 +19,7 @@ for name, substrate, ax_row in zip(('SW', 'LW'), (sw_substrate, lw_substrate), a
 
     for ax, data, title, clabel in zip(ax_row, (substrate_z, delta, dl), titles, clabels):
         v_min, v_max = np.nanpercentile(data[~data.mask], [1, 99])
-        im = ax.imshow(data, extent=substrate.aperture.limits, origin='lower', vmin=v_min, vmax=v_max, cmap='hsv')
+        im = ax.imshow(data, extent=substrate.aperture.limits, origin='lower', vmin=v_min, vmax=v_max)
         divider = make_axes_locatable(ax)
         cax = divider.append_axes('right', size='5%', pad=0.1)
         fig.colorbar(im, cax=cax, label=clabel)

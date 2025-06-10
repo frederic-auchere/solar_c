@@ -1,6 +1,6 @@
 import copy
 from optics import Standard, EllipticalGrating, PieAperture, RectangularAperture, Sphere
-from solar_c.optical.surfaces import EGASubstrate
+from optical.surfaces import EGASubstrate
 
 STEP = None  # [mm] step size used to sample the optical surfaces of the substrates
 
