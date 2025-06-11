@@ -27,7 +27,7 @@ fitter = EGAFit(sag_data, substrate, fitted_parameters, Sphere(1518, 0, 80),
                 floating_reference=True, tol=1e-9, objective='std', method='powell')
 
 # fitter = EGAFit.from_xlsx(r"C:\Users\fauchere\Documents\02-Programmes\Python\scripts\solar_c\sw_substrates_template.xlsx")
-#
+
 fit = fitter.fit()
 print(fit[0].best_surface)
 print(fit[0].rms)

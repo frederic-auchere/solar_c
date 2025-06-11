@@ -1,5 +1,5 @@
 from astropy.io import fits
-from optical import SagData, EGAFit
+from optical.zygo import SagData, EGAFit
 from optical import rectangular_sw_substrate
 from optics.surfaces import Substrate, Sphere, MeasuredSurface, make_sub_parametric
 import matplotlib.pyplot as plt
