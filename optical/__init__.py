@@ -129,9 +129,9 @@ bertin_sw_sphericals = bertin_sw1_spherical, bertin_sw2_spherical, bertin_sw3_sp
 
 # Measured angles between mirrors of the rotation stage
 # See mirror_crown_measurements.xlsx
-mirror_crown_angles = [0, 022.5405, 45.022, 67.5556,
-                       90.0603, 112.4738, 134.9973, 157.5418,
-                       179.9889, 202.5545, 224.9925, 247.5120,
-                       269.9254, 292.5007, 315.0222, 337.5255]
+mirror_crown_angles = [0, 022.5652, 45.1991, 67.5008,
+                       90.0427, 112.3770, 134.9388, 157.4930,
+                       179.8404, 202.5396, 225.0522, 247.4106,
+                       269.9620, 292.2563, 314.8955, 337.4130]
 # The angle the substrate is rotated is the opposite as the angle the crown is rotated
 mirror_crown_angles = [-m for m in mirror_crown_angles]
