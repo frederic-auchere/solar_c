@@ -8,7 +8,7 @@ STEP = None  # [mm] step size used to sample the optical surfaces of the substra
 
 #  LW definitions
 
-lw_useful_area = PieAperture(34.2 / 2, 90, -90)  # useful area is a half circle
+lw_useful_area = PieAperture(37 / 2, 90, -90)  # useful area is a half circle
 
 # From Zemax definitions in EUVST_v20230909.zmx
 # Description of the design in RSC-2022021C_SOLAR-C(EUVST)_Optical_Design_Summary.pdf
@@ -65,7 +65,7 @@ bertin_lw3_spherical = EGASubstrate(surface,
 
 # SW definitions
 
-sw_useful_area = PieAperture(34.2 / 2, -90, 90)
+sw_useful_area = PieAperture(37 / 2, -90, 90)
 
 sw_surface = Standard(516.0274, -0.522870,
                       dx=31.8380922, dy=15.0690780, dz=2.446336,
