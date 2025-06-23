@@ -1,6 +1,7 @@
 from optical.surfaces import EGASubstrate
 from optics.geometry import Polygon, Point
 from itertools import permutations
+from scipy.stats import circmean, circstd
 import numpy as np
 
 
@@ -17,7 +18,8 @@ def match_polygons(polygons, reference, offset_angles=None, absolute_angles=Fals
     If the reference vertices coordinates are in [mm] and those of the polygon in [pixels], the scale is in [mm / pixel]
     """
 
-    estimator = {'mean': np.mean, 'median': np.median}[estimator]
+    circ_estimator = {'mean': circmean}[estimator]
+    estimator = {'mean': np.mean}[estimator]
 
     if type(polygons) == Polygon:
         polygons = [polygons]
@@ -43,19 +45,19 @@ def match_polygons(polygons, reference, offset_angles=None, absolute_angles=Fals
             theta.append(edges_theta)
 
         # The best match polygon is the one for which the angles between all pairs of sides have the smallest std
-        idx = np.argmin([np.std(edges_theta) for edges_theta in theta])
+        idx = np.argmin([circstd(edges_theta) for edges_theta in theta])
         ordered_polygons.append(permuted_polygons[idx])
-        angles.append(np.degrees(theta[idx]))
+        angles.append(theta[idx])
 
     if offset_angles is None:  # No angles were passed
         # The roll between the polygon and the reference is the mean of the angles
-        angles = [estimator(edges_angles) for edges_angles in angles]
+        angles = np.degrees([circ_estimator(edges_angles) for edges_angles in angles])
     elif absolute_angles:  # Absolute angles were passed
         angles = offset_angles
     else:  # Relative angles were passed
         # The roll between the polygons and the reference is the mean of all angles plus the offset_angles
-        delta = estimator([angle - offset for edges_angles, offset in zip(angles, offset_angles)
-                           for angle in edges_angles])
+        delta = np.degrees(circ_estimator([angle - offset for edges_angles, offset in zip(angles, np.radians(offset_angles))
+                           for angle in edges_angles]))
         angles = [delta + offset for offset in offset_angles]
 
     # The scale is the mean of the scales between all pairs of sides
@@ -73,13 +75,10 @@ def match_polygons(polygons, reference, offset_angles=None, absolute_angles=Fals
         x, y = rotation_matrix @ xy
 
         # Compute the mean translation between the vertices of the polygon and those of the scaled and rotated reference
-        dx = estimator([v.x - x for v in polygon.vertices])
-        dy = estimator([v.y - y for v in polygon.vertices])
+        dx = estimator([v.x - x for v, x in zip(polygon.vertices, x)])
+        dy = estimator([v.y - y for v, y in zip(polygon.vertices, y)])
 
         output.append({'gx': g, 'gy': g, 'dx': dx, 'dy': dy, 'theta': angle})
-
-    if type(polygons) == Polygon:
-        output = output[0]
 
     return output
 
