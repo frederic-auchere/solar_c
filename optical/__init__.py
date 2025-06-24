@@ -16,7 +16,7 @@ lw_surface = EllipticalGrating(1 / 1008.9554166, 1 / 1010.2811818, 1933.255026,
                                dx=0, dy=2.0386372, dz=0,
                                alpha=0.346498, beta=0.7733422, gamma=0, degrees=True)
 # Aperture is modeled as a rectangle
-lw_aperture = RectangularAperture(17.4, 34.8, dx=-17.4 / 2 - 0.15 / 2)
+lw_aperture = RectangularAperture(21.925, 46.188, dx=-21.925 / 2 - 0.15 / 2)
 lw_substrate = EGASubstrate(lw_surface,
                             lw_aperture,
                             lw_useful_area,
@@ -70,7 +70,7 @@ sw_useful_area = PieAperture(37 / 2, -90, 90)
 sw_surface = Standard(516.0274, -0.522870,
                       dx=31.8380922, dy=15.0690780, dz=2.446336,
                       alpha=3.1515375, beta=-5.0875302, gamma=0, degrees=True)
-sw_aperture = RectangularAperture(17.4, 34.8, dx=17.4 / 2 + 0.15 / 2)
+sw_aperture = RectangularAperture(21.925, 46.188, dx=21.925 / 2 + 0.15 / 2)
 sw_substrate = EGASubstrate(sw_surface,
                             sw_aperture,
                             sw_useful_area,
