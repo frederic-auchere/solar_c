@@ -72,7 +72,7 @@ if __name__ == "__main__":
 
     parser.add_argument("-p", "--plate_scale",
                         help="Detector plate scale (arcsecond/pixel)",
-                        default=np.degrees(0.0024 / 2540) * 3600,
+                        default=np.degrees(0.0024 / 2895) * 3600,
                         type=float)
 
     parser.add_argument("-e", "--edge",
