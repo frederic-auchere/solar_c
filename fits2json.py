@@ -75,7 +75,7 @@ if __name__ == "__main__":
                         default=np.degrees(0.0024 / 2540) * 3600,
                         type=float)
 
-    parser.add_argument("-p", "--edge",
+    parser.add_argument("-e", "--edge",
                         help="Cross-correlation edge",
                         default=40,
                         type=int)
