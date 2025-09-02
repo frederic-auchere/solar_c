@@ -4,8 +4,9 @@ from optical.zygo import EGAFit
 
 def main(xlsx_file, outfile=None):
     fitter = EGAFit.from_xlsx(xlsx_file)
+    print('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
     fit = fitter.fit()
-    fitter.make_report(outfile=outfile)
+    fitter.make_report(outfile=outfile, save_stack=True)
 
 
 def sfe():

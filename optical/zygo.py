@@ -73,18 +73,20 @@ class EGAFit(Fit):
                 row = next(rows)
                 path = '' if row[0].value is None else row[0].value
             elif "4.2 Data" in row[0].value:
-                sag_data = []
                 table = read_table()
                 fiducials = []
-                mirror_crown= []
+                crown_indices = []
                 for row in table:
-                    mirror_crown.append(mirror_crown_angles[row.pop('crown') - 1])
+                    crown_index = row.pop('crown')
+                    crown_indices.append(crown_index if crown_index > 0 else None)
                     fiducials.append(
                         Polygon((Point(row.pop('x1'), row.pop('y1'), 0),
                                  Point(row.pop('x2'), row.pop('y2'), 0),
                                  Point(row.pop('x3'), row.pop('y3'), 0)))
                     )
+                mirror_crown = [mirror_crown_angles[c - 1] for c in crown_indices] if all(crown_indices) else None
                 geometries = ega_from_fiducials(fiducials, substrate, offset_angles=mirror_crown)
+                sag_data = []
                 for row, geometry in zip(table, geometries):
                     file = os.path.join(path, row.pop('file'))
                     row.update(geometry)
