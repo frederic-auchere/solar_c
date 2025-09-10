@@ -5,6 +5,7 @@ from astropy.io import fits
 from tqdm import tqdm
 import json
 import argparse
+import csv
 
 
 def read_header(file):
@@ -64,7 +65,7 @@ def register(reference, image, edge=512):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(prog="FITS2JSON",
-                                     description="Converts FITS cube to JSON stability data")
+                                     description="Converts FITS cube to JSON or CSV stability data")
     parser.add_argument("filename",
                         help="Input FITS file",
                         default="",
@@ -80,7 +81,15 @@ if __name__ == "__main__":
                         default=40,
                         type=int)
 
+    parser.add_argument("-t", "--type",
+                        help="Output file type",
+                        default='json',
+                        type=str)
+
     args = parser.parse_args()
+
+    if args.type not in ['json', 'csv']:
+        raise TypeError('Type must be json or csv')
 
     full_file_path = args.filename
     header_file = os.path.splitext(full_file_path)[0] + '.txt'
@@ -93,12 +102,19 @@ if __name__ == "__main__":
     x , y = [], []
     for d in tqdm(data[1:]):
         dx, dy = register(reference, d, edge=args.edge)
-        x.append(dx)
-        y.append(dy)
+        x.append(dx * args.plate_scale)
+        y.append(dy * args.plate_scale)
 
-    data = {
-        'unit': 'arcsec',
-        'data': {d: {'x': x * args.plate_scale, 'y': y * args.plate_scale} for d, x, y in zip(dates[1:], x, y)}
-    }
-    with open(os.path.join(os.path.splitext(full_file_path)[0] + '.json'), 'w', encoding='utf-8') as fp:
-        json.dump(data, fp, indent=4)
+    with open(os.path.join(os.path.splitext(full_file_path)[0] + '.' + args.type), 'w',
+              encoding='utf-8', newline='') as fp:
+        if args.type == 'json':
+            data = {
+                'unit': 'arcsec',
+                'data': {d: {'x': x, 'y': y} for d, x, y in zip(dates[1:], x, y)}
+            }
+            json.dump(data, fp, indent=4)
+        elif args.type == 'csv':
+            fieldnames = ['date', 'x', 'y']
+            writer = csv.DictWriter(fp, delimiter=',', quoting=csv.QUOTE_NONE, fieldnames=fieldnames, dialect='excel')
+            writer.writeheader()
+            writer.writerows([{'date': d, 'x': x, 'y': y} for d, x, y in zip(dates[1:], x, y)])
