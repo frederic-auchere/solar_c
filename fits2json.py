@@ -23,7 +23,7 @@ def read_header(file):
     return dates
 
 
-def register(reference, image, edge=512):
+def register(reference, image, edge=(10, 10)):
     """
     Returns the offset between image and reference computed by cross correlation
     """
@@ -51,13 +51,16 @@ def register(reference, image, edge=512):
     
             return dx, dy    
 
+    edge_x = int(round(image.shape[1] * edge[0] / 100.0))
+    edge_y = int(round(image.shape[0] * edge[1] / 100.0))
+
     cc = cv2.matchTemplate(reference,
-                           np.copy(image[edge:-edge, edge:-edge]),
+                           np.copy(image[edge_y:-edge_y, edge_x:-edge_x]),
                            cv2.TM_CCOEFF_NORMED)
     dx, dy = parabolic_interpolation(cc)
 
-    dx -= edge
-    dy -= edge
+    dx -= edge_x
+    dy -= edge_y
 
     return dx, dy
 
@@ -77,8 +80,8 @@ if __name__ == "__main__":
                         type=float)
 
     parser.add_argument("-e", "--edge",
-                        help="Cross-correlation edge",
-                        default=40,
+                        help="Cross-correlation edge in % of the shape",
+                        default=10,
                         type=int)
 
     parser.add_argument("-t", "--type",
@@ -96,12 +99,12 @@ if __name__ == "__main__":
     full_header_path = os.path.join(os.path.dirname(full_file_path), header_file)
     dates = read_header(full_header_path)
 
-    data = fits.getdata(full_file_path)
+    data = fits.getdata(full_file_path).astype(np.float32)
 
     reference = data[0]
     x , y = [], []
     for d in tqdm(data[1:]):
-        dx, dy = register(reference, d, edge=args.edge)
+        dx, dy = register(reference, d, edge=(args.edge, args.edge))
         x.append(dx * args.plate_scale)
         y.append(dy * args.plate_scale)
     x = np.array(x)
