@@ -7,9 +7,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from copy import deepcopy
 
-base_path = r"C:\Users\fauchere\Documents\01-Projects\02-Space\Solar C\EPSILON\Optics\Substrates\Bertin\LW_SN1"
+base_path = r"Y:\02- Engineering\08 - Metrology\01 - Optics\08 - Bertin\LW_SN1"
 zygo_file = "LW-SN1_Zygo_mes_1.datx"
-nanomefos_file = "LW_SN1_2_ZU_raw.datx"
+nanomefos_file = "LW_SN1_2_ZU_wotiltnina2.datx"
 
 gx = 0.207
 gy = gx
@@ -17,7 +17,7 @@ dx = 14 + (61.925 - 19.925) / gx
 dy = 400 - 86.188 / 2 / gy
 sag_data = SagData(os.path.join(base_path, zygo_file), gx=gx, dx=dx, dy=dy, theta=0, binning=1, auto_crop=True)
 
-nanomefos_data = SagData(os.path.join(base_path, nanomefos_file), dx=136.25, dy=93.5, theta=0, binning=1, auto_crop=True)
+nanomefos_data = SagData(os.path.join(base_path, nanomefos_file), dx=60, dy=60, theta=0, binning=1, auto_crop=True)
 
 measured_surface = surfaces.MeasuredSurface(nanomefos_data, alpha=0, beta=0, gamma=0)
 measured_substrate = surfaces.Substrate(measured_surface,

@@ -104,6 +104,8 @@ if __name__ == "__main__":
         dx, dy = register(reference, d, edge=args.edge)
         x.append(dx * args.plate_scale)
         y.append(dy * args.plate_scale)
+    x = np.array(x)
+    y = np.array(y)
 
     with open(os.path.join(os.path.splitext(full_file_path)[0] + '.' + args.type), 'w',
               encoding='utf-8', newline='') as fp:
@@ -118,3 +120,8 @@ if __name__ == "__main__":
             writer = csv.DictWriter(fp, delimiter=',', quoting=csv.QUOTE_NONE, fieldnames=fieldnames, dialect='excel')
             writer.writeheader()
             writer.writerows([{'date': d, 'x': x, 'y': y} for d, x, y in zip(dates[1:], x, y)])
+
+    x_std = np.std(x)
+    y_std = np.std(y)
+    r_std = np.std(np.sqrt(x ** 2 + y ** 2))
+    print(f'Standard deviation: x:{x_std:.3f}" RMS y:{x_std:.3f}" RMS r:{r_std:.3f}" RMS')
