@@ -9,7 +9,7 @@ import csv
 
 
 def read_header(file):
-    with open(file) as f:
+    with open(file, encoding="utf-8", errors="ignore") as f:
         while True:
             if 'Timestamps' in f.readline():
                 break
@@ -110,8 +110,7 @@ if __name__ == "__main__":
     x = np.array(x)
     y = np.array(y)
 
-    with open(os.path.join(os.path.splitext(full_file_path)[0] + '.' + args.type), 'w',
-              encoding='utf-8', newline='') as fp:
+    with open(os.path.join(os.path.splitext(full_file_path)[0] + '.' + args.type), 'w', newline='') as fp:
         if args.type == 'json':
             data = {
                 'unit': 'arcsec',
