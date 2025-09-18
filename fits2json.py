@@ -109,6 +109,7 @@ if __name__ == "__main__":
         y.append(dy * args.plate_scale)
     x = np.array(x)
     y = np.array(y)
+    r = np.sqrt(x ** 2 + y ** 2)
 
     with open(os.path.join(os.path.splitext(full_file_path)[0] + '.' + args.type), 'w', newline='') as fp:
         if args.type == 'json':
@@ -118,12 +119,12 @@ if __name__ == "__main__":
             }
             json.dump(data, fp, indent=4)
         elif args.type == 'csv':
-            fieldnames = ['date', 'x', 'y']
+            fieldnames = ['date', 'x', 'y', 'r']
             writer = csv.DictWriter(fp, delimiter=',', quoting=csv.QUOTE_NONE, fieldnames=fieldnames, dialect='excel')
             writer.writeheader()
-            writer.writerows([{'date': d, 'x': x, 'y': y} for d, x, y in zip(dates[1:], x, y)])
+            writer.writerows([{'date': d, 'x': x, 'y': y, 'r':r} for d, x, y in zip(dates[1:], x, y, r)])
 
     x_std = np.std(x)
     y_std = np.std(y)
-    r_std = np.std(np.sqrt(x ** 2 + y ** 2))
+    r_std = np.std(r)
     print(f'Standard deviation: x:{x_std:.3f}" RMS y:{x_std:.3f}" RMS r:{r_std:.3f}" RMS')
