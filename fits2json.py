@@ -122,7 +122,7 @@ if __name__ == "__main__":
             fieldnames = ['date', 'x', 'y', 'r']
             writer = csv.DictWriter(fp, delimiter=',', quoting=csv.QUOTE_NONE, fieldnames=fieldnames, dialect='excel')
             writer.writeheader()
-            writer.writerows([{'date': d, 'x': x, 'y': y, 'r':r} for d, x, y in zip(dates[1:], x, y, r)])
+            writer.writerows([{'date': d, 'x': x, 'y': y, 'r':r} for d, x, y, r in zip(dates[1:], x, y, r)])
 
     x_std = np.std(x)
     y_std = np.std(y)
