@@ -5,14 +5,15 @@ from optics.zygo import SagData
 from optical.zygo import EGAFit
 from optics import surfaces
 import matplotlib.pyplot as plt
+from fitting import sfit
 
 path_nanomefos = '/Volumes/solarc/02- Engineering/08 - Metrology/01 - Optics/08 - Bertin/LW_SN1/'
 files_nanomefos = [
-    'LW_SN1_2_ZU_raw.datx',
     'LW_SN1_2_ZU_wotiltnina3.datx',
+    'LW_SN1_2_ZU_wotilt.datx',
     'LW-SN2_2_ZU_woTilt.datx',
     'LW-SN2_2_ZU_raw.datx']
-files_roughness=['LW-SN1_Rugo_mesure.datx','LW-SN1_Rugo_mesure_allFitted.datx']
+files_roughness=['LW-SN1_Rugo_mesure_allFitted.datx','LW-SN1_Rugo_mesure.datx']
 #mesurement of the dx and dy in the images
 dx_nanomefos = [60,60]
 dy_nanomefos = [61,61]
@@ -40,12 +41,11 @@ roughness_data = SagData(
     os.path.join(path_nanomefos, files_roughness[file_idx]),
     dx=dx_roughness, dy=dy_roughness, theta=0, binning=1, auto_crop=True
 )
+
     # dx=136.25, dy=93.5,
 # print(SagData(os.path.join(path_nanomefos, files_roughness[file_idx])).gx)
 
-# plt.imshow(roughness_data.sag, aspect="equal", origin="lower")
-# plt.colorbar()
-# plt.show()
+
 print(roughness_data.sag.shape)
 # dx and dy: sampling steps in x and y
 # theta: rotation angle
@@ -63,11 +63,18 @@ measured_substrate = surfaces.Substrate(
 
 # Get sag map as a 2D array
 map1 = np.asarray(measured_substrate.sag().data)*1e6
+# map1-=sfit(map1,2, missing=np.nan)[0]
 sz = measured_substrate.sag().shape
 ny1, nx1 = sz
 map2 = np.asarray(roughness_data.sag.data)*1e6
+map2 -=sfit(map2,4)[0]
 sz2 = roughness_data.sag.shape
 ny2, nx2 = sz2
+#
+# plt.imshow(map1, aspect="equal", origin="lower")
+# plt.colorbar()
+# plt.show()
+
 
 # Physical size of the substrate in mm
 xw, yw = 18.3, 36.9
@@ -117,27 +124,29 @@ dataimg2 *= window2
 # CALCUL DU PSD
 # ---------------------
 # Compute the 2D power spectral density (PSD) and normalize by pixel size and variance
-psd1 = (np.abs(np.fft.fft2(dataimg1))**2) * (xpix1 * 1e6 * ypix1 * 1e6) / var1
-psd2 = (np.abs(np.fft.fft2(dataimg2))**2) * (xpix2 * 1e6 * ypix2 * 1e6) / var2
+psd1 = (np.abs(np.fft.fft2(dataimg1))**2) * (xpix1 * 1e6 * ypix1 * 1e6) / (var1*nx1*ny1) #pas besoin de multiplier par N car different de IDL
+psd2 = (np.abs(np.fft.fft2(dataimg2))**2) * (xpix2 * 1e6 * ypix2 * 1e6) / (var2*nx2*ny2)
 # plt.imshow(np.log10(psd1), aspect="auto")
 # plt.colorbar()
 # plt.show()
-# plt.imshow(np.log10(psd2), aspect="auto")
+# plt.imshow(np.log10(psd2), aspect="auto")s
 # plt.colorbar()
 # plt.show()
 psd1 = psd1[:ny1 // 2, :nx1 // 2] # Keep only the first quadrant (positive frequencies)
 psd2 = psd2[:ny2 // 2, :nx2 // 2]
 
 
-nu_x = np.fft.fftfreq(nx1, d=xpix1* 1e6)[:nx1//2]  # nm^-1
-nu_y = np.fft.fftfreq(ny1, d=ypix1* 1e6)[:ny1//2]  # nm^-1
+# nu_x = np.fft.fftfreq(nx1, d=xpix1* 1e6)#[:nx1//2]  # nm^-1
+nu_x=(np.linspace(0, nx1-1, nx1)/(nx1*xpix1*1e6))[:nx1//2]
+nu_y=(np.linspace(0, ny1-1, ny1)/(ny1*ypix1*1e6))[:ny1//2]  # nm^-1
 print(nu_x.shape, nu_y.shape)
 nu_x2 = np.fft.fftfreq(nx2, d=xpix2* 1e6)[:nx2//2]  # nm^-1
 nu_y2 = np.fft.fftfreq(ny2, d=ypix2* 1e6)[:ny2//2]  # nm^-1
-print(nu_x2.shape, nu_y2.shape)
+# print(nu_x2.shape, nu_y2.shape)
 # Extract 1D cuts along x and y
 psd_y = psd1[:, 0]
 psd_x = psd1[0, :]
+print(psd_y.shape,psd_x.shape)
 
 psd_y2 = psd2[:, 0]
 psd_x2 = psd2[0, :]
@@ -158,9 +167,6 @@ m_x2, c_x2 = np.linalg.lstsq(A_x2, log_psd_x2, rcond=None)[0]
 print(f"Pente PSD X rugo = {m_x2:.2f}")
 
 psd_fit_x2 = 10 ** (m_x2 * np.log10(nu_x2[1:]) + c_x2)
-
-
-
 
 log_y = np.log10(nu_y[1:])
 log_psd_y = np.log10(psd_y[1:])
