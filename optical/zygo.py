@@ -10,6 +10,7 @@ from optical import mirror_crown_angles
 import os
 from openpyxl import load_workbook
 import matplotlib as mp
+from pathlib import Path
 
 
 class EGAFit(Fit):
@@ -34,7 +35,7 @@ class EGAFit(Fit):
 
             return table
 
-        wb = load_workbook(xlsx_file)
+        wb = load_workbook(xlsx_file,keep_vba=True)
         rows = wb.active.rows
         while True:
             try:
@@ -88,7 +89,9 @@ class EGAFit(Fit):
                 geometries = ega_from_fiducials(fiducials, substrate, offset_angles=mirror_crown)
                 sag_data = []
                 for row, geometry in zip(table, geometries):
-                    file = os.path.join(path, row.pop('file'))
+                    # file = os.path.join(path, row.pop('file'))
+                    filename = row.pop('file').replace("\\", os.sep).replace("/", os.sep)
+                    file = (Path(path) / filename).resolve()
                     row.update(geometry)
                     sag_data.append(SagData(file, **row))
 
