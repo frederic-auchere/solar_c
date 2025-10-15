@@ -25,7 +25,6 @@ class EGAFit(Fit):
             while fields[column].value is not None:
                 table_keys.append(fields[column].value.split(' ')[0].lower())
                 column += 1
-
             table = []
             while True:
                 row = next(rows)
@@ -40,6 +39,7 @@ class EGAFit(Fit):
         while True:
             try:
                 row = next(rows)
+                print(row[0].value)
             except StopIteration:
                 break
             if row[0].value is None:
@@ -62,9 +62,13 @@ class EGAFit(Fit):
                 substrate_useful_area = read_table()[0]
                 shape = substrate_useful_area.pop('shape')
                 substrate_useful_area = surfaces.Aperture.factory.create(shape + 'Aperture', **substrate_useful_area)
+            elif "2.5 Mask" in row[0].value:
+                substrate_mask = read_table()[0]
             elif "2.4 Fiducials" in row[0].value:
                 xy = read_table()[0]
-                substrate = EGASubstrate(substrate_surface, substrate_aperture, substrate_useful_area,
+                shape = substrate_mask.pop('shape')
+                substrate_mask = surfaces.Aperture.factory.create(shape + 'Aperture', **substrate_mask)
+                substrate = EGASubstrate(substrate_surface, substrate_aperture, substrate_useful_area,substrate_mask,
                                          fiducials=((xy['x1'], xy['y1']), (xy['x2'], xy['y2']), (xy['x3'], xy['y3'])))
             elif "3. Reference" in row[0].value:
                 reference = read_table()[0]
@@ -86,7 +90,9 @@ class EGAFit(Fit):
                                  Point(row.pop('x3'), row.pop('y3'), 0)))
                     )
                 mirror_crown = [mirror_crown_angles[c - 1] for c in crown_indices] if all(crown_indices) else None
+
                 geometries = ega_from_fiducials(fiducials, substrate, offset_angles=mirror_crown)
+
                 sag_data = []
                 for row, geometry in zip(table, geometries):
                     # file = os.path.join(path, row.pop('file'))
