@@ -39,6 +39,7 @@ class EGAFit(Fit):
         while True:
             try:
                 row = next(rows)
+                print(row[0].value)
             except StopIteration:
                 break
             if row[0].value is None:
