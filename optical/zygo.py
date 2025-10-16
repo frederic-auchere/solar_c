@@ -1,9 +1,7 @@
 import copy
-
 from optics.zygo import Fit, SagData
 from optics import surfaces
 from optics.geometry import Point, Polygon
-
 from optical.fiducials import ega_from_fiducials
 from optical.surfaces import EGASubstrate
 from optical import mirror_crown_angles
@@ -39,7 +37,6 @@ class EGAFit(Fit):
         while True:
             try:
                 row = next(rows)
-                print(row[0].value)
             except StopIteration:
                 break
             if row[0].value is None:
@@ -52,6 +49,7 @@ class EGAFit(Fit):
                 fitted_parameters = [] if parameters is None else [p.strip() for p in parameters.split(',')]
             elif "2.1 Surface" in row[0].value:
                 substrate_surface = read_table()[0]
+                print('Surface', substrate_surface)
                 surface_type = substrate_surface.pop('type')
                 substrate_surface = surfaces.ParametricSurface.factory.create(surface_type, **substrate_surface)
             elif "2.2 Aperture" in row[0].value:
@@ -62,13 +60,9 @@ class EGAFit(Fit):
                 substrate_useful_area = read_table()[0]
                 shape = substrate_useful_area.pop('shape')
                 substrate_useful_area = surfaces.Aperture.factory.create(shape + 'Aperture', **substrate_useful_area)
-            elif "2.5 Mask" in row[0].value:
-                substrate_mask = read_table()[0]
             elif "2.4 Fiducials" in row[0].value:
                 xy = read_table()[0]
-                shape = substrate_mask.pop('shape')
-                substrate_mask = surfaces.Aperture.factory.create(shape + 'Aperture', **substrate_mask)
-                substrate = EGASubstrate(substrate_surface, substrate_aperture, substrate_useful_area,substrate_mask,
+                substrate = EGASubstrate(substrate_surface, substrate_aperture, substrate_useful_area,
                                          fiducials=((xy['x1'], xy['y1']), (xy['x2'], xy['y2']), (xy['x3'], xy['y3'])))
             elif "3. Reference" in row[0].value:
                 reference = read_table()[0]
@@ -91,7 +85,9 @@ class EGAFit(Fit):
                     )
                 mirror_crown = [mirror_crown_angles[c - 1] for c in crown_indices] if all(crown_indices) else None
 
+                print([(p.x, p.y) for f in fiducials for p in f.vertices])
                 geometries = ega_from_fiducials(fiducials, substrate, offset_angles=mirror_crown)
+                print('Geometry', geometries, len(geometries))
 
                 sag_data = []
                 for row, geometry in zip(table, geometries):

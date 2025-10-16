@@ -1,3 +1,5 @@
+import matplotlib.pyplot as plt
+
 from optical.surfaces import EGASubstrate
 from optics.geometry import Polygon, Point
 from itertools import permutations
@@ -87,6 +89,9 @@ def ega_from_fiducials(measured_fiducials, substrate: EGASubstrate, **kwargs):
 
     vertices = []
     for v in substrate.fiducials.vertices:
+        print('v', v.x, v.y, v.z)
+        print('matrix', substrate.surface)
+        plt.imshow(substrate.sag().data)
         x, y, _ = substrate.matrix_to_normal() @ (v.x, v.y, v.z, 1)
         vertices.append(Point(x, y, 0))
     return match_polygons(measured_fiducials, Polygon(vertices), **kwargs)

@@ -26,9 +26,9 @@ fitted_parameters = ['dx', 'dy']
 fitter = EGAFit(sag_data, substrate, fitted_parameters, Sphere(1518, 0, 80),
                 floating_reference=True, tol=1e-9, objective='std', method='powell')
 
-
 # fitter = EGAFit.from_xlsx(r"C:\Users\fauchere\Documents\02-Programmes\Python\scripts\solar_c\sw_substrates_template.xlsx")
-fitter = EGAFit.from_xlsx(r"Y:\02- Engineering\08 - Metrology\01 - Optics\07 - Measurements\SW1_STM\Zygo\20250619\20250619_sw1_stm.xlsx")
+# fitter = EGAFit.from_xlsx(r"Y:\02- Engineering\08 - Metrology\01 - Optics\07 - Measurements\STM\SW1_STM\Zygo\20250619\20250619_sw1_stm.xlsx")
+fitter = EGAFit.from_xlsx(r"Y:\02- Engineering\08 - Metrology\01 - Optics\07 - Measurements\STM\SW1_STM\Zygo\20250619\substrates_template_SW_SN2_test_fred.xlsm")
 
 print(fitter.sag_data)
 print(fitter.substrate.surface)

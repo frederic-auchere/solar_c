@@ -21,14 +21,14 @@ for orientation, guess, ax in zip(['000_0', '180_0'], ((-16, 13), (11, -11)), ax
 
     for file in tqdm(files):
 
-        sag_data = SagData(file, gx=0.084, binning=1, theta=0, auto_crop=True)
+        sag_data = SagData(file, gx=0.084, binning=1, theta=0, auto_crop=False, dx=420, dy=586)
         aperture = RectangularAperture(50, 50)
         mask = CircularAperture(5, dx=guess[0], dy=guess[1])
         initial_surface = Sphere(528, dx=guess[0], dy=guess[1])
         substrate = Substrate(initial_surface, aperture, mask)
 
         fitted_parameters = ['r', 'dx', 'dy']
-        fitter = EGAFit(sag_data, substrate, fitted_parameters, Flat(), floating_reference=False, objective='std', method='powell')
+        fitter = EGAFit(sag_data, substrate, fitted_parameters, Flat(), floating_reference=True, objective='std', method='powell', tol=1e-2)
         best_surface = fitter.fit()
         best_surfaces.append(best_surface)
 
