@@ -62,6 +62,15 @@ bertin_lw3_spherical = EGASubstrate(surface,
                                     name='LW SN3',
                                     x_grid_step=STEP)
 
+# LW4 substrate
+dx, dy = rectangular_lw_substrate.limits[1] - 12.563, 42.104 - rectangular_lw_substrate.limits[3]
+surface = Sphere(528.61, dx, dy)
+surface.dz += 20.052 - 20 + surface.sag((dx, dy))
+bertin_lw4_spherical = EGASubstrate(surface,
+                                    copy.deepcopy(spherical_lw_aperture),
+                                    name='LW SN4',
+                                    x_grid_step=STEP)
+
 
 # SW definitions
 
@@ -124,8 +133,18 @@ bertin_sw1_spherical = EGASubstrate(surface,
                                     name='SW SN1',
                                     x_grid_step=STEP)
 
-bertin_lw_sphericals = bertin_lw1_spherical, bertin_lw2_spherical, bertin_lw3_spherical
-bertin_sw_sphericals = bertin_sw1_spherical, bertin_sw2_spherical, bertin_sw3_spherical, bertin_sw4_spherical
+# SW5 substrate
+dx, dy = rectangular_sw_substrate.limits[0] + 5.831, 29.743 - rectangular_sw_substrate.limits[3]
+surface = Sphere(518.07, dx, dy)
+surface.dz += 19.730 - 20 + surface.sag((dx, dy))
+bertin_sw5_spherical = EGASubstrate(surface,
+                                    copy.deepcopy(spherical_sw_aperture),
+                                    name='SW SN5',
+                                    x_grid_step=STEP)
+
+bertin_lw_sphericals = bertin_lw1_spherical, bertin_lw2_spherical, bertin_lw3_spherical, bertin_lw4_spherical
+bertin_sw_sphericals = (bertin_sw1_spherical, bertin_sw2_spherical, bertin_sw3_spherical, bertin_sw4_spherical,
+                        bertin_sw5_spherical)
 
 # Measured angles between mirrors of the rotation stage
 # See mirror_crown_measurements.xlsx
