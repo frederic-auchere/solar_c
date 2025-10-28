@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 
 
 #fitter = EGAFit.from_xlsx(r"/Volumes/solarc/02- Engineering/08 - Metrology/01 - Optics/07 - Measurements/FM/Old-avant_reprise_Bertin_Sept_2025/FM_SW_SN1_old/Zygo/Tilt/20250901/substrates_template_SW_SN2.xlsm")
-fitter = EGAFit.from_xlsx(r"Y:\02- Engineering/08 - Metrology/01 - Optics/07 - Measurements/FM/Old-avant_reprise_Bertin_Sept_2025/FM_SW_SN1_old/Zygo/Tilt/20250901/substrates_template_SW_SN2_test.xlsm")
+fitter = EGAFit.from_xlsx(r"Y:\02- Engineering/08 - Metrology/01 - Optics/07 - Measurements/FM/Old-avant_reprise_Bertin_Sept_2025/FM_SW_SN1_old/Zygo/Tilt/20250901/substrates_template_SW_SN2.xlsm")
 # fitter = EGAFit.from_xlsx(r'/Volumes/solarc/02- Engineering/08 - Metrology/01 - Optics/07 - Measurements/STM/SW1_STM/Zygo/20250619/20250619_sw1_stm.xlsx')
 print(fitter.substrate.surface)
 
