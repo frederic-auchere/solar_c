@@ -1,7 +1,10 @@
 import copy
+from gettext import translation
+
 from optics.zygo import Fit, SagData
 from optics import surfaces
 from optics.geometry import Point, Polygon
+
 from optical.fiducials import ega_from_fiducials
 from optical.surfaces import EGASubstrate
 from optical import mirror_crown_angles
@@ -9,6 +12,7 @@ import os
 from openpyxl import load_workbook
 import matplotlib as mp
 from pathlib import Path
+import numpy as np
 
 
 class EGAFit(Fit):
@@ -49,9 +53,8 @@ class EGAFit(Fit):
                 fitted_parameters = [] if parameters is None else [p.strip() for p in parameters.split(',')]
             elif "2.1 Surface" in row[0].value:
                 substrate_surface = read_table()[0]
-                print('Surface', substrate_surface)
                 surface_type = substrate_surface.pop('type')
-                substrate_surface = surfaces.ParametricSurface.factory.create(surface_type, **substrate_surface)
+                substrate_surface = surfaces.ParametricSurface.factory.create(surface_type, degrees=True, **substrate_surface)
             elif "2.2 Aperture" in row[0].value:
                 substrate_aperture = read_table()[0]
                 shape = substrate_aperture.pop('shape')
@@ -78,16 +81,12 @@ class EGAFit(Fit):
                 for row in table:
                     crown_index = row.pop('crown')
                     crown_indices.append(crown_index if crown_index > 0 else None)
-                    fiducials.append(
-                        Polygon((Point(row.pop('x1'), row.pop('y1'), 0),
-                                 Point(row.pop('x2'), row.pop('y2'), 0),
-                                 Point(row.pop('x3'), row.pop('y3'), 0)))
-                    )
+                    fiducials.append(Polygon((Point(row.pop('x1'), row.pop('y1'), 0),
+                                              Point(row.pop('x2'), row.pop('y2'), 0),
+                                              Point(row.pop('x3'), row.pop('y3'), 0))))
                 mirror_crown = [mirror_crown_angles[c - 1] for c in crown_indices] if all(crown_indices) else None
 
-                print([(p.x, p.y) for f in fiducials for p in f.vertices])
                 geometries = ega_from_fiducials(fiducials, substrate, offset_angles=mirror_crown)
-                print('Geometry', geometries, len(geometries))
 
                 sag_data = []
                 for row, geometry in zip(table, geometries):
@@ -95,7 +94,36 @@ class EGAFit(Fit):
                     filename = row.pop('file').replace("\\", os.sep).replace("/", os.sep)
                     file = (Path(path) / filename).resolve()
                     row.update(geometry)
-                    sag_data.append(SagData(file, **row))
+
+                    theta = row.pop('roll')
+
+                    binning = row.pop('binning')
+                    sd = SagData(file, auto_crop=False, binning=1, **row)
+
+                    cos = np.cos(np.radians(theta))
+                    sin = np.sin(np.radians(theta))
+                    rotation = np.array([[cos, sin, 0],
+                                         [-sin, cos, 0],
+                                         [0, 0, 1]])
+                    pivot_x = substrate.aperture.dx
+                    if theta == 90 or theta == 270:
+                        pivot_y = substrate.aperture.dy - (substrate.aperture.y_width - substrate.aperture.x_width) / 2
+                    elif theta == 0 or theta == 180:
+                        pivot_y = substrate.aperture.dy  # substrate center
+                    else:
+                        raise ValueError('Invalid tilt mount angle')
+                    to_pivot = [[1, 0, -pivot_x],
+                                 [0, 1, -pivot_y],
+                                 [0, 0, 1]]
+                    to_ega = [[1, 0, pivot_x],
+                              [0, 1, pivot_y],
+                              [0, 0, 1]]
+                    x, y, _ = to_ega @ rotation @ to_pivot @ (0, 0, 1)
+                    row['dx'], row['dy'] = sd.to_data(x, y)
+                    row['theta']  = row['theta'] - theta
+
+                    sag_data.append(SagData(file, binning=binning, **row))
+
 
         return cls(sag_data,
                    copy.deepcopy(substrate),

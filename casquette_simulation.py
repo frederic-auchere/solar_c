@@ -27,5 +27,5 @@ for substrate, spherical_substrate, ax, title in zip((rectangular_lw_substrate, 
     ax[0].set_title(f'{title} substrate')
     interferogram = spherical_substrate.interferogram(grid=spherical_substrate.grid(nx=400, ny=400, limits=lw_limits),
                                                       reference_surface=Flat())
-    ax[1].imshow(rebin(interferogram, (40,40)), origin='lower', extent=lw_limits)
+    ax[1].imshow(rebin(interferogram, (400,400)), origin='lower', extent=lw_limits)
     ax[1].set_title(f'{title} spherical substrate')
