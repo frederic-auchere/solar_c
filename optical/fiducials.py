@@ -51,21 +51,27 @@ def match_polygons(polygons, reference, offset_angles=None, absolute_angles=Fals
 
     if offset_angles is None:  # No angles were passed
         # The roll between the polygon and the reference is the mean of the angles
-        angles = np.degrees([circ_estimator(edges_angles) for edges_angles in angles])
+        angles = [np.degrees(circ_estimator(edges_angles)) for edges_angles in angles]
+        angles_std = [np.degrees(circstd(edges_angles)) for edges_angles in angles]
     elif absolute_angles:  # Absolute angles were passed
         angles = offset_angles
+        angles_std = [0] * len(angles)
     else:  # Relative angles were passed
         # The roll between the polygons and the reference is the mean of all angles plus the offset_angles
-        delta = np.degrees(circ_estimator([angle - offset for edges_angles, offset in zip(angles, np.radians(offset_angles))
-                           for angle in edges_angles]))
+        deltas = [angle - offset for edges_angles, offset in zip(angles, np.radians(offset_angles))
+                           for angle in edges_angles]
+        delta = np.degrees(circ_estimator(deltas))
         angles = [delta + offset for offset in offset_angles]
+        angles_std = [np.degrees(circstd(deltas))] * len(angles)
 
     # The scale is the mean of the scales between all pairs of sides
-    g = estimator([edge2.v.norm / edge1.v.norm for polygon in ordered_polygons
-                   for edge1, edge2 in zip(polygon.edges, reference.edges)])
+    scales = [edge2.v.norm / edge1.v.norm for polygon in ordered_polygons
+                   for edge1, edge2 in zip(polygon.edges, reference.edges)]
+    g = estimator(scales)
+    g_std = np.std(scales)
 
     output = []
-    for polygon, angle in zip(ordered_polygons, angles):
+    for polygon, angle, angle_std in zip(ordered_polygons, angles, angles_std):
 
         # Scale and rotate the reference to the polygon
         cos_g, sin_g = np.cos(np.radians(angle)) / g, np.sin(np.radians(angle)) / g
@@ -75,10 +81,18 @@ def match_polygons(polygons, reference, offset_angles=None, absolute_angles=Fals
         x, y = rotation_matrix @ xy
 
         # Compute the mean translation between the vertices of the polygon and those of the scaled and rotated reference
-        dx = estimator([v.x - x for v, x in zip(polygon.vertices, x)])
-        dy = estimator([v.y - y for v, y in zip(polygon.vertices, y)])
+        dxs = [v.x - x for v, x in zip(polygon.vertices, x)]
+        dx = estimator(dxs)
+        dx_std = np.std(dxs)
+        dys = [v.y - y for v, y in zip(polygon.vertices, y)]
+        dy = estimator(dys)
+        dy_std = np.std(dys)
 
-        output.append({'gx': g, 'gy': g, 'dx': dx, 'dy': dy, 'theta': angle})
+        output.append({'gx': g, 'gx_std': g_std,
+                       'gy': g, 'gy_std': g_std,
+                       'dx': dx, 'dx_std': dx_std,
+                       'dy': dy, 'dy_std': dy_std,
+                       'theta': angle, 'theta_std': angle_std})
 
     return output
 

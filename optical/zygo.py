@@ -87,6 +87,8 @@ class EGAFit(Fit):
                 mirror_crown = [mirror_crown_angles[c - 1] for c in crown_indices] if all(crown_indices) else None
 
                 geometries = ega_from_fiducials(fiducials, substrate, offset_angles=mirror_crown)
+                # for geometry in geometries:
+                #     print(geometry)
 
                 sag_data = []
                 for row, geometry in zip(table, geometries):
@@ -95,20 +97,22 @@ class EGAFit(Fit):
                     file = (Path(path) / filename).resolve()
                     row.update(geometry)
 
-                    theta = row.pop('roll')
+                    roll = row.pop('roll')
+                    for key in ['gx_std', 'gy_std', 'dx_std', 'dy_std', 'theta_std']:
+                        row.pop(key)  # Unused by sag_data
 
                     binning = row.pop('binning')
                     sd = SagData(file, auto_crop=False, binning=1, **row)
 
-                    cos = np.cos(np.radians(theta))
-                    sin = np.sin(np.radians(theta))
+                    cos = np.cos(np.radians(roll))
+                    sin = np.sin(np.radians(roll))
                     rotation = np.array([[cos, sin, 0],
                                          [-sin, cos, 0],
                                          [0, 0, 1]])
                     pivot_x = substrate.aperture.dx
-                    if theta == 90 or theta == 270:
+                    if roll == 90 or roll == 270:
                         pivot_y = substrate.aperture.dy - (substrate.aperture.y_width - substrate.aperture.x_width) / 2
-                    elif theta == 0 or theta == 180:
+                    elif roll == 0 or roll == 180:
                         pivot_y = substrate.aperture.dy  # substrate center
                     else:
                         raise ValueError('Invalid tilt mount angle')
@@ -120,7 +124,7 @@ class EGAFit(Fit):
                               [0, 0, 1]]
                     x, y, _ = to_ega @ rotation @ to_pivot @ (0, 0, 1)
                     row['dx'], row['dy'] = sd.to_data(x, y)
-                    row['theta']  = row['theta'] - theta
+                    row['theta']  = (row['theta'] - roll) % 360
 
                     sag_data.append(SagData(file, binning=binning, **row))
 
