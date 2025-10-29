@@ -109,10 +109,14 @@ class EGAFit(Fit):
                     rotation = np.array([[cos, sin, 0],
                                          [-sin, cos, 0],
                                          [0, 0, 1]])
-                    pivot_x = substrate.aperture.dx
-                    if roll == 90 or roll == 270:
+                    if roll == 270:
+                        pivot_x = substrate.aperture.dx
                         pivot_y = substrate.aperture.dy - (substrate.aperture.y_width - substrate.aperture.x_width) / 2
+                    elif roll == 90:
+                        pivot_x = substrate.aperture.dx - (substrate.aperture.y_width - substrate.aperture.x_width) / 2
+                        pivot_y = substrate.aperture.dy
                     elif roll == 0 or roll == 180:
+                        pivot_x = substrate.aperture.dx
                         pivot_y = substrate.aperture.dy  # substrate center
                     else:
                         raise ValueError('Invalid tilt mount angle')
