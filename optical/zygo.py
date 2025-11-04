@@ -1,10 +1,7 @@
 import copy
-from gettext import translation
-
 from optics.zygo import Fit, SagData
 from optics import surfaces
 from optics.geometry import Point, Polygon
-
 from optical.fiducials import ega_from_fiducials
 from optical.surfaces import EGASubstrate
 from optical import mirror_crown_angles
@@ -86,7 +83,8 @@ class EGAFit(Fit):
                                               Point(row.pop('x3'), row.pop('y3'), 0))))
                 mirror_crown = [mirror_crown_angles[c - 1] for c in crown_indices] if all(crown_indices) else None
 
-                geometries = ega_from_fiducials(fiducials, substrate, offset_angles=mirror_crown)
+                to_normal = type(reference) is not surfaces.Flat
+                geometries = ega_from_fiducials(fiducials, substrate, to_normal, offset_angles=mirror_crown)
                 # for geometry in geometries:
                 #     print(geometry)
 
@@ -131,7 +129,6 @@ class EGAFit(Fit):
                     row['theta']  = (row['theta'] - roll) % 360
 
                     sag_data.append(SagData(file, binning=binning, **row))
-
 
         return cls(sag_data,
                    copy.deepcopy(substrate),
