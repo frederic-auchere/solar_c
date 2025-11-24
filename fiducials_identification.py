@@ -14,7 +14,7 @@ def fit_circle_to_points(x_coords, y_coords):
 
     """
     if len(x_coords) < 3:
-        raise ValueError("Need at least 3 points to fit a circle, duh!")
+        raise ValueError("Need at least 3 points to fit a circle")
 
     # Setting up the linear system
     A = np.c_[2 * x_coords, 2 * y_coords, np.ones(x_coords.size)]
@@ -38,8 +38,8 @@ def interactive_fiducial_measurement(image_path, file_name, max_num_circles=3):
         return []
 
     fig, ax = plt.subplots(figsize=(15, 15))  # large figure for easy clicking
-    # vmin, vmax = np.percentile(image_data, (2, 98))
-    ax.imshow(image_data,origin='lower',cmap=plt.get_cmap('gray'),vmin=0, vmax=2)
+    vmin, vmax = np.percentile(image_data, (5, 95))
+    ax.imshow(image_data,origin='lower',cmap=plt.get_cmap('gray'),vmin=vmin, vmax=vmax)
     ax.set_title(f"Working on: {file_name}\nClick points, press Enter to confirm circle, Backspace to undo last click")
     plt.axis("image")
 
@@ -152,10 +152,10 @@ if os.path.isfile(excel_output_path):
 else:
     processed_files = set()
     measurement_results = []
-    print("ℹ️ No existing Excel found, starting a new one.")
+    print(" No existing Excel found, starting a new one.")
 
 # --- Trouver tous les fichiers .npy ---
-npy_file_list = [f for f in os.listdir(folder_path) if f.lower().endswith("qpsix.npy")]
+npy_file_list = [f for f in os.listdir(folder_path) if f.lower().endswith("qpsix_max.npy")]
 if not npy_file_list:
     print("No NPY files found in the specified folder")
     exit()
@@ -179,7 +179,7 @@ for current_file in npy_file_list:
 
     measured_fiducials = interactive_fiducial_measurement(full_image_path, current_file, circles_per_image)
 
-    data_row = {"filename": current_file}
+    data_row = {"filename": current_file.replace("_qpsix_max.npy", ".datx").replace("_", "/", 1)}
     for fiducial_idx, (center_x, center_y) in enumerate(measured_fiducials, start=1):
         data_row[f"xc_{fiducial_idx}"] = center_x
         data_row[f"yc_{fiducial_idx}"] = center_y
