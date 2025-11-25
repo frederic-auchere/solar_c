@@ -33,7 +33,7 @@ class EGAFit(Fit):
 
             return table
 
-        wb = load_workbook(xlsx_file,keep_vba=True)
+        wb = load_workbook(xlsx_file, keep_vba=True)
         rows = wb.active.rows
         while True:
             try:
@@ -70,7 +70,7 @@ class EGAFit(Fit):
                 reference = surfaces.ParametricSurface.factory.create(surface_type, **reference)
             elif "4.1 Path" in row[0].value:
                 row = next(rows)
-                path = '' if row[0].value is None else row[0].value
+                path = os.path.dirname(xlsx_file) if row[0].value is None else row[0].value
             elif "4.2 Data" in row[0].value:
                 table = read_table()
                 fiducials = []
@@ -85,8 +85,8 @@ class EGAFit(Fit):
 
                 to_normal = type(reference) is not surfaces.Flat
                 geometries = ega_from_fiducials(fiducials, substrate, to_normal, offset_angles=mirror_crown)
-                # for geometry in geometries:
-                #     print(geometry)
+                for geometry in geometries:
+                    print(geometry)
 
                 sag_data = []
                 for row, geometry in zip(table, geometries):
@@ -118,6 +118,8 @@ class EGAFit(Fit):
                         pivot_y = substrate.aperture.dy  # substrate center
                     else:
                         raise ValueError('Invalid tilt mount angle')
+                    # pivot_x += -0.08
+                    # pivot_y += 0.05
                     to_pivot = [[1, 0, -pivot_x],
                                  [0, 1, -pivot_y],
                                  [0, 0, 1]]
