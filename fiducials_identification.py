@@ -121,7 +121,7 @@ def interactive_fiducial_measurement(image_path, file_name, max_num_circles=3):
     fig.canvas.mpl_connect('button_press_event', handle_mouse_click)
     fig.canvas.mpl_connect('key_press_event', handle_keypress)
 
-    plt.show()
+    plt.show(block=True)
     return finished_circles
 
 
