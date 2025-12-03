@@ -7,9 +7,9 @@ from optical.surfaces import EGASubstrate
 from optical import mirror_crown_angles
 import os
 from openpyxl import load_workbook
-import matplotlib as mp
 from pathlib import Path
 import numpy as np
+from optical.utils import fit_circle_to_points
 
 
 class EGAFit(Fit):
@@ -26,7 +26,10 @@ class EGAFit(Fit):
                 column += 1
             table = []
             while True:
-                row = next(rows)
+                try:
+                    row = next(rows)
+                except StopIteration:
+                    break
                 if row[0].value is None:
                     break
                 table.append({key:cell.value for key, cell in zip(table_keys, row)})
@@ -137,16 +140,20 @@ class EGAFit(Fit):
                    reference,
                    floating_reference=floating_reference, tol=tolerance, **options)
 
+    def tilt_fix(self):
+        xc, yc = [], []
+        for sag_data, result in zip(self.sag_data, self.result):
+            if result is not None:
+                x, y = sag_data.to_data(result.best_surface.surface1.dx, result.best_surface.surface1.dy)
+                x_ega, y_ega = sag_data.to_data(0, 0)
+                xc.append(x - x_ega)
+                yc.append(y - y_ega)
 
-def sfe_measure(**kwargs):
-    extension = os.path.splitext(kwargs['file'])[1]
-    if extension == '.xlsx':
-        fitter = EGAFit.from_xlsx(kwargs['file'])
-    elif extension == '.json':
-        fitter = EGAFit.from_json(kwargs['file'])
-    else:
-        raise ValueError('File extension not supported')
+        cx, cy, r = fit_circle_to_points(xc, yc)
 
-    mp.use('Agg')
-    fitter.fit()
-    fitter.make_report(kwargs['output'])
+        for sag_data, result in zip(self.sag_data, self.result):
+            if result is not None:
+                x_ega, y_ega = sag_data.to_data(0, 0)
+                dx, dy = sag_data.to_substrate(x_ega - cx, y_ega - cy)
+                result.best_surface.surface1.dx += dx
+                result.best_surface.surface1.dy += dy

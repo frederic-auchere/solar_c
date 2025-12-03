@@ -6,7 +6,7 @@ matplotlib.use("TkAgg")  # Had issues with other backends on my machine
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 import pandas as pd
-from utils import fit_circle_to_points
+from optical.utils import fit_circle_to_points
 
 
 def interactive_fiducial_measurement(image_path, file_name, max_num_circles=3):
