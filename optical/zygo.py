@@ -85,8 +85,6 @@ class EGAFit(Fit):
 
                 to_normal = type(reference) is not surfaces.Flat
                 geometries = ega_from_fiducials(fiducials, substrate, to_normal, offset_angles=mirror_crown)
-                for geometry in geometries:
-                    print(geometry)
 
                 sag_data = []
                 for row, geometry in zip(table, geometries):
