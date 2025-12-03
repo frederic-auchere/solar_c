@@ -130,7 +130,7 @@ class EGAFit(Fit):
                     x, y, _ = to_ega @ rotation @ to_pivot @ (0, 0, 1)
                     row['dx'], row['dy'] = sd.to_data(x, y)
                     row['theta']  = (row['theta'] - roll) % 360
-                    sag_data.append(SagData(file, auto_crop=False, binning=binning, **row))
+                    sag_data.append(SagData(file, binning=binning, **row))
 
         return cls(sag_data,
                    copy.deepcopy(substrate),
@@ -142,8 +142,8 @@ class EGAFit(Fit):
         xc, yc = [], []
         for sag_data, result in zip(self.sag_data, self.result):
             if result is not None:
-                x, y = sag_data.to_data(result.best_surface.surface1.dx, result.best_surface.surface1.dy)
-                x_ega, y_ega = sag_data.to_data(0, 0)
+                x, y = sag_data.to_data(result.best_surface.surface1.dx, result.best_surface.surface1.dy, raw=True)
+                x_ega, y_ega = sag_data.to_data(0, 0, raw=True)
                 xc.append(x - x_ega)
                 yc.append(y - y_ega)
 
@@ -151,7 +151,7 @@ class EGAFit(Fit):
 
         for sag_data, result in zip(self.sag_data, self.result):
             if result is not None:
-                x_ega, y_ega = sag_data.to_data(0, 0)
-                dx, dy = sag_data.to_substrate(x_ega - cx, y_ega - cy)
+                x_ega, y_ega = sag_data.to_data(0, 0, raw=True)
+                dx, dy = sag_data.to_substrate(x_ega - cx, y_ega - cy, raw=True)
                 result.best_surface.surface1.dx += dx
                 result.best_surface.surface1.dy += dy
