@@ -118,8 +118,8 @@ class EGAFit(Fit):
                         pivot_y = substrate.aperture.dy  # substrate center
                     else:
                         raise ValueError('Invalid tilt mount angle')
-                    # pivot_x += -0.08
-                    # pivot_y += 0.05
+                    # pivot_x += -0.13
+                    # pivot_y -= 0.04
                     to_pivot = [[1, 0, -pivot_x],
                                  [0, 1, -pivot_y],
                                  [0, 0, 1]]
@@ -129,8 +129,7 @@ class EGAFit(Fit):
                     x, y, _ = to_ega @ rotation @ to_pivot @ (0, 0, 1)
                     row['dx'], row['dy'] = sd.to_data(x, y)
                     row['theta']  = (row['theta'] - roll) % 360
-
-                    sag_data.append(SagData(file, binning=binning, **row))
+                    sag_data.append(SagData(file, auto_crop=False, binning=binning, **row))
 
         return cls(sag_data,
                    copy.deepcopy(substrate),
