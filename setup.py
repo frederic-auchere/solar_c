@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 entry_points = {
     'console_scripts': [
-        'sfe=optical.cli:sfe',
+        'make_report=optical.cli:make_report',
         ]
     }
 
