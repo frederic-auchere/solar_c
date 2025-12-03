@@ -6,25 +6,7 @@ matplotlib.use("TkAgg")  # Had issues with other backends on my machine
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 import pandas as pd
-
-
-def fit_circle_to_points(x_coords, y_coords):
-    """
-    Fits a circle to 3 or more points using least squares
-
-    """
-    if len(x_coords) < 3:
-        raise ValueError("Need at least 3 points to fit a circle")
-
-    # Setting up the linear system
-    A = np.c_[2 * x_coords, 2 * y_coords, np.ones(x_coords.size)]
-    b = x_coords ** 2 + y_coords ** 2
-    coeffs, residuals, rank, s = np.linalg.lstsq(A, b, rcond=None)  # keeping all outputs just in case
-
-    center_x, center_y = coeffs[0], coeffs[1]  # circle center coordinates
-    radius = np.sqrt(coeffs[2] + center_x ** 2 + center_y ** 2)
-
-    return center_x, center_y, radius
+from utils import fit_circle_to_points
 
 
 def interactive_fiducial_measurement(image_path, file_name, max_num_circles=3):
