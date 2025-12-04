@@ -88,6 +88,8 @@ class EGAFit(Fit):
 
                 to_normal = type(reference) is not surfaces.Flat
                 geometries = ega_from_fiducials(fiducials, substrate, to_normal, offset_angles=mirror_crown)
+                for geometry in geometries:
+                    print(geometry)
 
                 sag_data = []
                 for row, geometry in zip(table, geometries):
@@ -119,8 +121,6 @@ class EGAFit(Fit):
                         pivot_y = substrate.aperture.dy  # substrate center
                     else:
                         raise ValueError('Invalid tilt mount angle')
-                    # pivot_x += -0.13
-                    # pivot_y -= 0.04
                     to_pivot = [[1, 0, -pivot_x],
                                  [0, 1, -pivot_y],
                                  [0, 0, 1]]
