@@ -40,18 +40,35 @@ def interactive_fiducial_measurement(image_path, file_name, max_num_circles=3):
     finished_circles = []
     point_plots = []  # store plotted points for easy removal
 
+    preview_lines = []  # <-- ajouter ça en global ou nonlocal dans la fonction principale
+
     def redraw_preview():
         """Redraw the preview circle if possible."""
+        # Supprimer anciens patches
         for patch in ax.patches[:]:
             patch.remove()
+
+        # Supprimer uniquement les anciennes lignes de repère
+        nonlocal preview_lines
+        for line in preview_lines:
+            line.remove()
+        preview_lines = []
 
         if len(clicked_points) >= 3:
             x_values = np.array([pt[0] for pt in clicked_points])
             y_values = np.array([pt[1] for pt in clicked_points])
             try:
                 cx, cy, r = fit_circle_to_points(x_values, y_values)
+
+                # Cercle prévisionnel
                 preview_circle = Circle((cx, cy), r, fill=False, color='cyan', linewidth=2, linestyle='--')
                 ax.add_patch(preview_circle)
+
+                # Repère limité au rayon du cercle
+                h_line, = ax.plot([cx - r, cx + r], [cy, cy], color='magenta', linestyle='--', linewidth=1)
+                v_line, = ax.plot([cx, cx], [cy - r, cy + r], color='magenta', linestyle='--', linewidth=1)
+                preview_lines = [h_line, v_line]
+
             except Exception:
                 pass
 
@@ -245,13 +262,13 @@ for current_file in npy_file_list:
     measured_fiducials = interactive_fiducial_measurement(full_image_path, current_file, circles_per_image)
 
     data_row = {
-        "filename_npy": current_file,
+        "filename_npy": current_file,"mirror":current_file.split("_")[0],
         "filename": current_file.replace("_qpsix_max.npy", ".datx").replace("_", "/", 1)
     }
     for fiducial_idx, (center_x, center_y) in enumerate(measured_fiducials, start=1):
         data_row[f"xc_{fiducial_idx}"] = center_x
         data_row[f"yc_{fiducial_idx}"] = center_y
-
+    data_row['filename']= current_file.replace("_qpsix_max.npy", ".datx").replace("_", "/", 1)
     measurement_results.append(data_row)
     processed_files.add(current_file)
 
