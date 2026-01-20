@@ -16,161 +16,163 @@ USER = getpass.getuser()
 
 def interactive_fiducial_measurement(image_path, file_name, max_num_circles=3):
     """
-    Shows an image and lets user click points to fit fiducials manually
+    Shows an image and lets user click points to fit fiducials manually.
+    SHIFT = click points
+    X     = validate circle
+    BACKSPACE = undo last point
     """
     try:
         image_data = np.load(image_path)
     except Exception as e:
         print(f"Couldn't load image: {e}")
         return []
-    shift_pressed = False
-    zoom_was_active = False
-    fig, ax = plt.subplots(figsize=(15, 15))  # large figure for easy clicking
-    # activer le zoom automatiquement
-    try:
-        fig.canvas.manager.toolbar.zoom()  # version la plus fréquente
-    except:
-        fig.canvas.toolbar.zoom()  # fallback si manager n'existe pas
+
+    fig, ax = plt.subplots(figsize=(15, 15))
+
+    # --- Force zoom ON at startup (cross-platform) ---
+    toolbar = plt.get_current_fig_manager().toolbar
+    if toolbar and toolbar.mode != 'zoom rect':
+        toolbar.zoom()
+
     vmin, vmax = np.percentile(image_data, (5, 95))
-    ax.imshow(image_data,origin='lower',cmap=plt.get_cmap('gray'),vmin=vmin, vmax=vmax)
-    ax.set_title(f"Working on: {file_name}\nClick points, press Enter to confirm circle, Backspace to undo last click")
+    ax.imshow(image_data, origin='lower', cmap='gray', vmin=vmin, vmax=vmax)
+    ax.set_title(
+        f"Working on: {file_name}\n"
+        "SHIFT + Click = add points | X = validate circle | Backspace = undo"
+    )
     plt.axis("image")
 
     clicked_points = []
     finished_circles = []
-    point_plots = []  # store plotted points for easy removal
+    point_plots = []
+    preview_lines = []
 
-    preview_lines = []  # <-- ajouter ça en global ou nonlocal dans la fonction principale
+    shift_pressed = False
+    zoom_was_active = False
 
+    # ------------------------------------------------------------
     def redraw_preview():
-        """Redraw the preview circle if possible."""
-        # Supprimer anciens patches
+        # Remove previous preview patches
         for patch in ax.patches[:]:
             patch.remove()
 
-        # Supprimer uniquement les anciennes lignes de repère
         nonlocal preview_lines
         for line in preview_lines:
             line.remove()
         preview_lines = []
 
         if len(clicked_points) >= 3:
-            x_values = np.array([pt[0] for pt in clicked_points])
-            y_values = np.array([pt[1] for pt in clicked_points])
             try:
-                cx, cy, r = fit_circle_to_points(x_values, y_values)
+                x = np.array([p[0] for p in clicked_points])
+                y = np.array([p[1] for p in clicked_points])
+                cx, cy, r = fit_circle_to_points(x, y)
 
-                # Cercle prévisionnel
-                preview_circle = Circle((cx, cy), r, fill=False, color='cyan', linewidth=2, linestyle='--')
+                preview_circle = Circle(
+                    (cx, cy), r,
+                    fill=False, color='cyan',
+                    linestyle='--', linewidth=2
+                )
                 ax.add_patch(preview_circle)
 
-                # Repère limité au rayon du cercle
-                h_line, = ax.plot([cx - r, cx + r], [cy, cy], color='magenta', linestyle='--', linewidth=1)
-                v_line, = ax.plot([cx, cx], [cy - r, cy + r], color='magenta', linestyle='--', linewidth=1)
-                preview_lines = [h_line, v_line]
+                h, = ax.plot([cx - r, cx + r], [cy, cy], 'm--', lw=1)
+                v, = ax.plot([cx, cx], [cy - r, cy + r], 'm--', lw=1)
+                preview_lines = [h, v]
 
             except Exception:
                 pass
 
         fig.canvas.draw_idle()
 
+    # ------------------------------------------------------------
     def handle_mouse_click(event):
         if event.inaxes != ax or event.button != 1:
             return
 
-        # SHIFT → zoom temporairement désactivé → on prend un point
         if shift_pressed:
-            x, y = event.xdata, event.ydata
-            clicked_points.append((x, y))
-            plot, = ax.plot(x, y, 'bo', markersize=2)
-            point_plots.append(plot)
+            clicked_points.append((event.xdata, event.ydata))
+            p, = ax.plot(event.xdata, event.ydata, 'bo', ms=2)
+            point_plots.append(p)
             redraw_preview()
-            return
 
-    def handle_keyrelease(event):
-        nonlocal shift_pressed
-        if event.key == 'shift':
-            shift_pressed = False
+    # ------------------------------------------------------------
     def handle_keypress(event):
         nonlocal shift_pressed, zoom_was_active
-        toolbar = plt.get_current_fig_manager().toolbar
+
         if event.key == 'shift':
             shift_pressed = True
-            # Si zoom actif → désactivation temporaire
-            if toolbar.mode == 'zoom rect':
+            if toolbar and toolbar.mode == 'zoom rect':
                 zoom_was_active = True
-                toolbar.zoom()  # this toggles zoom *off*
+                toolbar.zoom()  # turn zoom OFF temporarily
             else:
                 zoom_was_active = False
-            return
 
+    # ------------------------------------------------------------
     def handle_keyrelease(event):
         nonlocal shift_pressed, zoom_was_active
-        toolbar = plt.get_current_fig_manager().toolbar
 
         if event.key == 'shift':
             shift_pressed = False
-
-            # Si on avait désactivé le zoom, on le remet
-            if zoom_was_active:
-                toolbar.zoom()  # toggles zoom *on*
+            if zoom_was_active and toolbar:
+                toolbar.zoom()  # restore zoom
                 zoom_was_active = False
-            return
+
         elif event.key == 'x':
-            if len(clicked_points) >= 3:
-                x_values = np.array([pt[0] for pt in clicked_points])
-                y_values = np.array([pt[1] for pt in clicked_points])
+            if len(clicked_points) < 3:
+                print("Need at least 3 points to fit a circle")
+                return
 
-                try:
-                    cx, cy, r = fit_circle_to_points(x_values, y_values)
-                    circle_number = len(finished_circles) + 1
+            try:
+                x = np.array([p[0] for p in clicked_points])
+                y = np.array([p[1] for p in clicked_points])
+                cx, cy, r = fit_circle_to_points(x, y)
 
-                    print(f"{file_name} | Circle #{circle_number}: center=({cx:.2f}, {cy:.2f}), radius={r:.2f}")
-                    finished_circles.append((cx, cy))
+                idx = len(finished_circles) + 1
+                print(
+                    f"{file_name} | Circle #{idx}: "
+                    f"center=({cx:.2f}, {cy:.2f}), radius={r:.2f}"
+                )
+                finished_circles.append((cx, cy))
 
-                    # Clear points for next circle
-                    clicked_points.clear()
-                    for p in point_plots:
-                        p.remove()
-                    point_plots.clear()
+                # Clear current points
+                clicked_points.clear()
+                for p in point_plots:
+                    p.remove()
+                point_plots.clear()
 
-                    # Ajouter le cercle final
-                    final_circle = Circle((cx, cy), r, fill=False, color='lime', linewidth=2)
-                    ax.add_patch(final_circle)
+                final_circle = Circle((cx, cy), r, fill=False,
+                                      color='lime', linewidth=2)
+                ax.add_patch(final_circle)
 
-                    # Redessiner
-                    fig.canvas.draw_idle()
+                # --- RESET VIEW ---
+                ax.set_xlim(0, image_data.shape[1])
+                ax.set_ylim(0, image_data.shape[0])
+                fig.canvas.draw_idle()
 
-                    # --- RESET VIEW (Home) après chaque cercle ---
-                    ax.set_xlim(0, image_data.shape[1])
-                    ax.set_ylim(0, image_data.shape[0])
-                    fig.canvas.draw_idle()
+                # --- FORCE zoom ON (Windows/macOS safe) ---
+                if toolbar and toolbar.mode != 'zoom rect':
+                    toolbar.zoom()
 
-                    if len(finished_circles) >= max_num_circles:
-                        print("All circles done. Close the window to continue...")
-                        plt.close(fig)
-                        return
-                except Exception as e:
-                    print(f"Error fitting circle: {e}")
-            else:
-                print("Need at least 3 points to make a circle")
+                if len(finished_circles) >= max_num_circles:
+                    print("All circles done. Close the window to continue.")
+                    plt.close(fig)
+
+            except Exception as e:
+                print(f"Error fitting circle: {e}")
 
         elif event.key == 'backspace':
-            # Undo last click
             if clicked_points:
                 clicked_points.pop()
                 if point_plots:
-                    last_plot = point_plots.pop()
-                    last_plot.remove()
-                print("Last click undone.")
+                    point_plots.pop().remove()
                 redraw_preview()
             else:
-                print("No points to remove.")
+                print("No points to undo")
 
-
+    # ------------------------------------------------------------
     fig.canvas.mpl_connect('button_press_event', handle_mouse_click)
     fig.canvas.mpl_connect('key_press_event', handle_keypress)
     fig.canvas.mpl_connect('key_release_event', handle_keyrelease)
+
     plt.show(block=True)
     return finished_circles
 
