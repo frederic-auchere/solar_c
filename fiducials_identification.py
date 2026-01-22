@@ -2,16 +2,15 @@ import os
 import numpy as np
 import matplotlib
 
-matplotlib.use("TkAgg")  # Had issues with other backends on my machine
+matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 import pandas as pd
 from optical.utils import fit_circle_to_points
 import time
-
 import getpass
-USER = getpass.getuser()
 
+USER = getpass.getuser()
 
 
 def interactive_fiducial_measurement(image_path, file_name, max_num_circles=3):
@@ -29,7 +28,7 @@ def interactive_fiducial_measurement(image_path, file_name, max_num_circles=3):
 
     fig, ax = plt.subplots(figsize=(15, 15))
 
-    # --- Force zoom ON at startup (cross-platform) ---
+    # --- Force zoom ON at startup ---
     toolbar = plt.get_current_fig_manager().toolbar
     if toolbar and toolbar.mode != 'zoom rect':
         toolbar.zoom()
@@ -45,18 +44,23 @@ def interactive_fiducial_measurement(image_path, file_name, max_num_circles=3):
     clicked_points = []
     finished_circles = []
     point_plots = []
+
     preview_lines = []
+    preview_circle = None
 
     shift_pressed = False
     zoom_was_active = False
 
     # ------------------------------------------------------------
     def redraw_preview():
-        # Remove previous preview patches
-        for patch in ax.patches[:]:
-            patch.remove()
+        nonlocal preview_circle, preview_lines
 
-        nonlocal preview_lines
+        # Remove preview circle only
+        if preview_circle is not None:
+            preview_circle.remove()
+            preview_circle = None
+
+        # Remove preview cross lines
         for line in preview_lines:
             line.remove()
         preview_lines = []
@@ -102,7 +106,7 @@ def interactive_fiducial_measurement(image_path, file_name, max_num_circles=3):
             shift_pressed = True
             if toolbar and toolbar.mode == 'zoom rect':
                 zoom_was_active = True
-                toolbar.zoom()  # turn zoom OFF temporarily
+                toolbar.zoom()
             else:
                 zoom_was_active = False
 
@@ -113,7 +117,7 @@ def interactive_fiducial_measurement(image_path, file_name, max_num_circles=3):
         if event.key == 'shift':
             shift_pressed = False
             if zoom_was_active and toolbar:
-                toolbar.zoom()  # restore zoom
+                toolbar.zoom()
                 zoom_was_active = False
 
         elif event.key == 'x':
@@ -131,6 +135,7 @@ def interactive_fiducial_measurement(image_path, file_name, max_num_circles=3):
                     f"{file_name} | Circle #{idx}: "
                     f"center=({cx:.2f}, {cy:.2f}), radius={r:.2f}"
                 )
+
                 finished_circles.append((cx, cy))
 
                 # Clear current points
@@ -139,16 +144,17 @@ def interactive_fiducial_measurement(image_path, file_name, max_num_circles=3):
                     p.remove()
                 point_plots.clear()
 
-                final_circle = Circle((cx, cy), r, fill=False,
-                                      color='lime', linewidth=2)
+                final_circle = Circle(
+                    (cx, cy), r,
+                    fill=False, color='lime', linewidth=2
+                )
                 ax.add_patch(final_circle)
 
-                # --- RESET VIEW ---
+                # Reset view
                 ax.set_xlim(0, image_data.shape[1])
                 ax.set_ylim(0, image_data.shape[0])
                 fig.canvas.draw_idle()
 
-                # --- FORCE zoom ON (Windows/macOS safe) ---
                 if toolbar and toolbar.mode != 'zoom rect':
                     toolbar.zoom()
 
@@ -177,117 +183,80 @@ def interactive_fiducial_measurement(image_path, file_name, max_num_circles=3):
     return finished_circles
 
 
+# ================================================================
+# ========================= MAIN SCRIPT ===========================
+# ================================================================
 
-# Main script starts here
 print("=== Fiducials Fitting Tool ===")
-
-
-
-
 
 folder_path = input("️  Enter folder path containing NPY files: ").strip().strip("'\"")
 
-
-# --- Lock system to avoid multiple users writing simultaneously ---
 lock_path = os.path.join(folder_path, ".fiducials_lock")
 with open(lock_path, "w") as f:
     f.write(USER)
-LOCK_TIMEOUT = 3600 # 1 heure en secondes
+
+LOCK_TIMEOUT = 3600
 
 if os.path.exists(lock_path):
     lock_age = time.time() - os.path.getmtime(lock_path)
     if lock_age > LOCK_TIMEOUT:
-        print("Lock file is old. Removing orphan lock.")
         os.remove(lock_path)
 
-# Create the lock file
 try:
     if os.path.exists(lock_path):
         with open(lock_path, "r") as f:
             lock_user = f.read().strip()
 
-        if lock_user == USER:
-            print("You already hold the lock. Continuing...")
-        else:
-            print(f"Folder is locked by another user: {lock_user}. Waiting...")
+        if lock_user != USER:
+            print(f"Folder locked by {lock_user}. Waiting...")
             while os.path.exists(lock_path):
                 time.sleep(2)
 except Exception as e:
-    print(f"Could not create lock file: {e}")
-    exit()
-if not os.path.isdir(folder_path):
-    print("Folder not found")
+    print(f"Lock error: {e}")
     exit()
 
 circles_per_image = 3
 excel_output_path = os.path.join(folder_path, "fiducials_measurements.xlsx")
 
-# --- Charger les anciens résultats si l'Excel existe ---
 if os.path.isfile(excel_output_path):
-    try:
-        previous_results = pd.read_excel(excel_output_path)
-        processed_files = set(previous_results["filename_npy"].tolist())
-        measurement_results = previous_results.to_dict(orient="records")
-        print(f" Loaded existing Excel with {len(processed_files)} measured files.")
-    except Exception as e:
-        print(f" Could not read Excel file ({e}). Starting fresh.")
-        processed_files = set()
-        measurement_results = []
+    previous_results = pd.read_excel(excel_output_path)
+    processed_files = set(previous_results["filename_npy"].tolist())
+    measurement_results = previous_results.to_dict(orient="records")
 else:
     processed_files = set()
     measurement_results = []
-    print(" No existing Excel found, starting a new one.")
 
-# --- Trouver tous les fichiers .npy ---
 npy_file_list = [f for f in os.listdir(folder_path) if f.lower().endswith("qpsix_max.npy")]
-if not npy_file_list:
-    print("No NPY files found in the specified folder")
-    exit()
 
-print(f"Found {len(npy_file_list)} NPY files to process ({len(processed_files)} already measured).")
-
-print("\nHow to use:")
-print(f" • Click on at least 3 points to define each fiducial")
-print(f" • Press Enter to confirm and save a circle (need {circles_per_image} total)")
-print(" • Press Backspace to undo last click")
-print(" • Close the window when you're done with an image\n")
-
-# --- Boucle principale ---
 for current_file in npy_file_list:
     if current_file in processed_files:
-        print(f"  Skipping already processed file: {current_file}")
         continue
 
-    print(f"\nProcessing: {current_file}")
     full_image_path = os.path.join(folder_path, current_file)
-
-    measured_fiducials = interactive_fiducial_measurement(full_image_path, current_file, circles_per_image)
+    measured_fiducials = interactive_fiducial_measurement(
+        full_image_path, current_file, circles_per_image
+    )
 
     data_row = {
-        "filename_npy": current_file,"mirror":current_file.split("_")[0],
-        "filename": current_file.replace("_qpsix_max.npy", ".datx").replace("_", "/", 1)
+        "filename_npy": current_file,
+        "mirror": current_file.split("_")[0],
+        "filename": current_file.replace("_qpsix_max.npy", ".datx").replace("_", "/", 1),
     }
-    for fiducial_idx, (center_x, center_y) in enumerate(measured_fiducials, start=1):
-        data_row[f"xc_{fiducial_idx}"] = center_x
-        data_row[f"yc_{fiducial_idx}"] = center_y
-    data_row['filename']= current_file.replace("_qpsix_max.npy", ".datx").replace("_", "/", 1)
+
+    for i, (cx, cy) in enumerate(measured_fiducials, start=1):
+        data_row[f"xc_{i}"] = cx
+        data_row[f"yc_{i}"] = cy
+
     measurement_results.append(data_row)
     processed_files.add(current_file)
 
-    # Sauvegarde après chaque image
     results_df = pd.DataFrame(measurement_results)
     results_df.to_excel(excel_output_path, index=False)
-    print(f" Saved current results to Excel: {excel_output_path}")
-# --- Release lock ---
-try:
-    if os.path.exists(lock_path):
-        with open(lock_path, "r") as f:
-            lock_user = f.read().strip()
-        if lock_user == USER:
+
+# Release lock
+if os.path.exists(lock_path):
+    with open(lock_path, "r") as f:
+        if f.read().strip() == USER:
             os.remove(lock_path)
-            print("Lock released.")
-except Exception as e:
-    print(f"Could not remove lock file: {e}")
-print("\n All files processed!")
 
-
+print("\nAll files processed!")
