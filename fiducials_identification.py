@@ -362,7 +362,8 @@ for current_file in npy_file_list:
     for i, (cx, cy) in enumerate(measured_fiducials, start=1):
         data_row[f"xc_{i}"] = cx
         data_row[f"yc_{i}"] = cy
-
+    data_row["roll"] = 0
+    data_row["binning"] = 1
     data_row["filename"] = current_file.replace("_qpsix_max.npy", ".datx").replace("_", "/", 1)
 
     measurement_results.append(data_row)
