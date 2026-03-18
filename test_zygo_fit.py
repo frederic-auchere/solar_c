@@ -4,7 +4,7 @@ from optical.zygo import SagData, EGAFit
 from optics.surfaces import Substrate, CircularAperture, Standard, Sphere
 
 path = r'C:\Users\fauchere\Documents\01-Projects\02-Space\Solar Orbiter\EUI\Design\HRI\Optics\Alignment\Interferometry\HRI-P\HRI-P2_20170125_IAS\Mesures'
-files = glob.glob(os.path.join(path, '*.asc'))[::8]
+files = glob.glob(os.path.join(path, '*.asc'))[::1]
 
 gx = ((1518.1 + 3.54350) / 1518.1) * 0.078797149
 gy = ((1518.1 + 3.54350) / 1518.1) * 0.078717716
@@ -16,7 +16,7 @@ for file in files:
         SagData(file, gx=gx, gy=gy, theta=theta, binning=4, auto_crop=False)
     )
 
-initial_surface = Standard(1518.1253, -1, 0, 80)
+initial_surface = Standard(1518.1253, -1, 0, 80, degrees=True)
 aperture = CircularAperture(33)
 useful_area = CircularAperture(27)
 substrate = Substrate(initial_surface, aperture, useful_area)
@@ -24,11 +24,13 @@ substrate = Substrate(initial_surface, aperture, useful_area)
 fitted_parameters = ['dx', 'dy']
 
 fitter = EGAFit(sag_data, substrate, fitted_parameters, Sphere(1518, 0, 80),
-                floating_reference=True, tol=1e-9, objective='std', method='powell')
+                floating_reference=True, tol=1e-14, objective='std', method='powell')
 
 # fitter = EGAFit.from_xlsx(r"C:\Users\fauchere\Documents\02-Programmes\Python\scripts\solar_c\sw_substrates_template.xlsx")
 # fitter = EGAFit.from_xlsx(r"Y:\02- Engineering\08 - Metrology\01 - Optics\07 - Measurements\STM\SW1_STM\Zygo\20250619\20250619_sw1_stm.xlsx")
-fitter = EGAFit.from_xlsx(r"Y:\02- Engineering\08 - Metrology\01 - Optics\07 - Measurements\STM\SW1_STM\Zygo\20250619\substrates_template_SW_SN2_test_fred.xlsm")
+# fitter = EGAFit.from_xlsx(r"Y:\02- Engineering\08 - Metrology\01 - Optics\07 - Measurements\STM\SW1_STM\Zygo\20250619\substrates_template_SW_SN2_test_fred.xlsm")
+# fitter = EGAFit.from_xlsx(r"Y:\02- Engineering\08 - Metrology\01 - Optics\07 - Measurements\FM\SW\FM_SW_SN5\Zygo\Form\20251121\substrate_FM_form_SW_SN5_test.xlsm")
+fitter = EGAFit.from_xlsx(r"Y:\02- Engineering\08 - Metrology\01 - Optics\07 - Measurements\FM\SW\FM_SW_SN5\Zygo\Form\20211202\substrate_FM_form_SW_SN5_test_fred.xlsm")
 
 print(fitter.sag_data)
 print(fitter.substrate.surface)
@@ -37,5 +39,5 @@ print('XXXXXXXX')
 fit = fitter.fit()
 print(fit[0].best_surface)
 print(fit[0].rms)
-#
+
 fitter.make_report()

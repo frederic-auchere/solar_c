@@ -1,11 +1,7 @@
-import os
 import numpy as np
-import glob
-from optics.zygo import SagData
 from optical.zygo import EGAFit
-from optics.surfaces import MeasuredSurface, Substrate, Sphere, Flat, RectangularAperture, CircularAperture
-from tqdm import tqdm
 import matplotlib.pyplot as plt
+from matplotlib.patches import Circle
 
 
 # path = r'C:\Users\fauchere\Documents\01-Projects\02-Space\Solar C\EPSILON\Optics\Metrology\Zygo\Casquette\20241206_casquette_by_flipping\Sequence2'
@@ -15,18 +11,49 @@ import matplotlib.pyplot as plt
 
 
 #fitter = EGAFit.from_xlsx(r"/Volumes/solarc/02- Engineering/08 - Metrology/01 - Optics/07 - Measurements/FM/Old-avant_reprise_Bertin_Sept_2025/FM_SW_SN1_old/Zygo/Tilt/20250901/substrates_template_SW_SN2.xlsm")
-fitter = EGAFit.from_xlsx(r"Y:\02- Engineering/08 - Metrology/01 - Optics/07 - Measurements/FM/Old-avant_reprise_Bertin_Sept_2025/FM_SW_SN1_old/Zygo/Tilt/20250901/substrates_template_SW_SN2.xlsm")
+#fitter = EGAFit.from_xlsx(r"Y:\02- Engineering/08 - Metrology/01 - Optics/07 - Measurements/FM/Old-avant_reprise_Bertin_Sept_2025/FM_SW_SN1_old/Zygo/Tilt/20250901/substrates_template_SW_SN2.xlsm")
 # fitter = EGAFit.from_xlsx(r'/Volumes/solarc/02- Engineering/08 - Metrology/01 - Optics/07 - Measurements/STM/SW1_STM/Zygo/20250619/20250619_sw1_stm.xlsx')
+fitter = EGAFit.from_xlsx(r"Y:\02- Engineering\08 - Metrology\01 - Optics\07 - Measurements\FM\SW\FM_SW_SN5\Zygo\Tilt\20251125\substrates_FM_casquette_SW_SN5_test.xlsm")
+# fitter = EGAFit.from_xlsx(r"Y:\02- Engineering\08 - Metrology\01 - Optics\07 - Measurements\FM\SW\FM_SW_SN5\Zygo\Tilt\20251127\substrates_FM_casquette_SW_SN5.xlsm")
+
 print(fitter.substrate.surface)
 
 print('XXXXXXXX')
 fit = fitter.fit()
-print(fit[0].best_surface)
-print(fit[0].rms)
+# print(fit[0].best_surface)
+# print(fit[0].rms)
 #
+
+xc = []
+yc = []
+for sag_data, result in zip(fitter.sag_data, fitter.result):
+    if result is not None:
+        x, y  = sag_data.to_data(result.best_surface.surface1.dx, result.best_surface.surface1.dy, raw=True)
+        x_ega, y_ega = sag_data.to_data(0, 0, raw=True)
+        xc.append(x - x_ega)
+        yc.append(y - y_ega)
+
+from optical.utils import fit_circle_to_points
+cx, cy, r = fit_circle_to_points(xc, yc)
+
+for sag_data, result in zip(fitter.sag_data, fitter.result):
+    if result is not None:
+        x_ega, y_ega = sag_data.to_data(0, 0, raw=True)
+        dx, dy = sag_data.to_substrate(x_ega - cx, y_ega - cy, raw=True)
+        result.best_surface.surface1.dx += dx
+        result.best_surface.surface1.dy += dy
+
 fitter.make_report()
 
+print(cx * fitter.sag_data[0].x_step, cy * fitter.sag_data[0].y_step, r * fitter.sag_data[0].x_step)
+print(np.sqrt(fitter.substrate.surface.dx ** 2 + fitter.substrate.surface.dy ** 2))
 
+circle = Circle((cx, cy), r, fill=False, color='cyan', linewidth=2, linestyle='--')
+
+fig, ax = plt.subplots()
+ax.scatter(xc, yc)
+ax.add_patch(circle)
+ax.axis('equal')
 
 
 # fig, axes = plt.subplots(2, 2, figsize=(20 / 2.54, 10 / 2.54))
