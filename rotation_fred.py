@@ -9,10 +9,8 @@ import numpy as np
 from optics.geometry import NormalVector
 
 files_zygo = r'Y:\02- Engineering/08 - Metrology/01 - Optics/07 - Measurements/FM/SW/FM_SW_SN1/Zygo/Form/20260223/substrates_template_FM_form_casquette_Bertin.fits'
-dx_zygo = 200
-dy_zygo = 432
 
-zygo_data = SagData(files_zygo, dx=dx_zygo, dy=dy_zygo, theta=0, binning=1, auto_crop=True)
+zygo_data = SagData(files_zygo, theta=0, binning=1, auto_crop=True)
 alpha, beta, gamma = rectangular_sw_substrate.tip_tilt_from_normal()
 measured_surface = surfaces.MeasuredSurface(zygo_data, alpha=alpha, beta=beta, gamma=gamma)
 
@@ -37,13 +35,7 @@ z += measured_substrate.sag((x,y)).data / 1e6
 xyz = np.stack((x, y, z, np.ones(x.size))) #shape 4x10201
 
 
-dx = -45.74
-dy = -28.389
-dx = -45.892
-dy = -28.339 # violet
-# dx = -45.81 # rouge
-# dy = -28.292
-dx = 0.173
+dx = 0.173  # écart point violet mesuré
 dy = -0.03
 p = np.sqrt(dx ** 2 + dy **2)
 dz = p * np.tan(np.acos(p / rectangular_sw_substrate.best_sphere.r))
