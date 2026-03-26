@@ -1,4 +1,3 @@
-from scipy.spatial.transform import Rotation
 from scipy.interpolate import griddata
 from astropy.io import fits
 import matplotlib.pyplot as plt
@@ -6,7 +5,6 @@ from optical import rectangular_sw_substrate
 from optics.zygo import SagData
 from optics import surfaces
 import numpy as np
-from optics.geometry import NormalVector
 
 files_zygo = r'Y:\02- Engineering/08 - Metrology/01 - Optics/07 - Measurements/FM/SW/FM_SW_SN1/Zygo/Form/20260223/substrates_template_FM_form_casquette_Bertin_SW1_ZU.fits'
 
