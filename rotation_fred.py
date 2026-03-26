@@ -8,7 +8,7 @@ from optics import surfaces
 import numpy as np
 from optics.geometry import NormalVector
 
-files_zygo = r'Y:\02- Engineering/08 - Metrology/01 - Optics/07 - Measurements/FM/SW/FM_SW_SN1/Zygo/Form/20260223/substrates_template_FM_form_casquette_Bertin.fits'
+files_zygo = r'Y:\02- Engineering/08 - Metrology/01 - Optics/07 - Measurements/FM/SW/FM_SW_SN1/Zygo/Form/20260223/substrates_template_FM_form_casquette_Bertin_SW1_ZU.fits'
 
 zygo_data = SagData(files_zygo, theta=0, binning=1, auto_crop=True)
 alpha, beta, gamma = rectangular_sw_substrate.tip_tilt_from_normal()
@@ -16,7 +16,7 @@ measured_surface = surfaces.MeasuredSurface(zygo_data, alpha=alpha, beta=beta, g
 
 measured_substrate = surfaces.Substrate(measured_surface, rectangular_sw_substrate.aperture, rectangular_sw_substrate.useful_area)
 
-grid_step = 0.1  # [mm]
+grid_step = 0.5  # [mm]
 nx = int((rectangular_sw_substrate.limits[1] - rectangular_sw_substrate.limits[0]) / grid_step)
 ny = int((rectangular_sw_substrate.limits[3] - rectangular_sw_substrate.limits[2]) / grid_step)
 x_min = rectangular_sw_substrate.limits[0]
@@ -30,34 +30,21 @@ nominal_sag = rectangular_sw_substrate.sag((ox, oy)).data
 xyz = np.stack((ox.ravel(), oy.ravel(), nominal_sag.ravel(), np.ones(ox.size)))
 
 x, y, z = measured_substrate.surface.rotation_matrix() @ xyz
-z += measured_substrate.sag((x,y)).data / 1e6
+best_sphere = rectangular_sw_substrate.best_sphere
 
-xyz = np.stack((x, y, z, np.ones(x.size))) #shape 4x10201
+dr = measured_substrate.sag((x, y)).data / 1e6
+sx, sy, sz = best_sphere.dx, best_sphere.dy, best_sphere.dz + best_sphere.r
+sx, sy, sz = measured_substrate.surface.rotation_matrix() @ np.array((sx, sy, sz, 1))
+ratio = dr / np.sqrt((x - sx) ** 2 + (y - sy) ** 2 + (z - sz) ** 2)
+x += (sx - x) * ratio
+y += (sy - y) * ratio
+z += (sz - z) * ratio
 
-
-dx = 0.173  # écart point violet mesuré
-dy = -0.03
-p = np.sqrt(dx ** 2 + dy **2)
-dz = p * np.tan(np.acos(p / rectangular_sw_substrate.best_sphere.r))
-normal_vector = NormalVector(dx, dy, dz)
-delta_alpha = -np.arctan2(normal_vector.y, normal_vector.z)
-delta_beta = np.arctan2(normal_vector.x, np.sqrt(normal_vector.y ** 2 + normal_vector.z ** 2))
-print(60 * np.degrees(delta_alpha), 60 * np.degrees(delta_beta))
-
-correction_tilt = Rotation.from_euler('xyz', (-delta_alpha, -delta_beta, 0)).as_matrix() #shape 3x3
-translation = np.array([[1, 0, 0, 0],
-                        [0, 1, 0, 0],
-                        [0, 0, 1, 0]])
-correction_tilt = correction_tilt @ translation
-
-nx, ny, nz = correction_tilt @ xyz  #[:3, :] # shape 3x3 @ shape 3x10201 -> 3x10201
-
-xyz = np.stack((nx, ny, nz, np.ones(x.size))) #shape 4x10201
-
+xyz = np.stack((x, y, z, np.ones(x.size)))
 nx, ny, nz = measured_substrate.surface.inverse_rotation_matrix() @ xyz
 
 valid = np.logical_and(np.isfinite(nx), np.isfinite(ny))
-sag = griddata((nx[valid], ny[valid]), nz[valid], (ox, oy), method='linear', rescale=False).reshape(ox.shape)
+sag = griddata((nx[valid], ny[valid]), nz[valid], (ox, oy), method='cubic', rescale=False).reshape(ox.shape)
 
 fig, axes = plt.subplots(1, 3)
 im1 = axes[0].imshow(sag, origin='lower', extent=rectangular_sw_substrate.limits)
@@ -76,4 +63,4 @@ header['DX'] = -rectangular_sw_substrate.aperture.limits[0] / header['GX']
 header['DY'] = -rectangular_sw_substrate.aperture.limits[2] / header['GY']
 header['THETA'] = 0
 
-fits.writeto(outfile, sag, header=header, overwrite=True)
+fits.writeto(outfile, sag_difference / 1e6, header=header, overwrite=True)
