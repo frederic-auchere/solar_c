@@ -228,32 +228,38 @@ def interactive_fiducial_measurement(image_path, file_name, max_num_circles=3, p
 
 def fill_template_with_fiducials(fiducials_excel_path, template_dest):
     """
-    Reads fiducials_measurements.xlsx (skipping first row header and first column),
+    Reads fiducials_measurements.xlsx (skipping first column),
     and pastes all data rows into the 'fit' sheet of the template xlsm starting at row 34.
+    Uses xlwings to preserve macros, dropdown menus, and all Excel features.
     """
     try:
-        import openpyxl
+        import xlwings as xw
 
-        # Read fiducials excel, skip first column
         fid_df = pd.read_excel(fiducials_excel_path)
         data = fid_df.iloc[:, 1:].values  # skip first column
 
-        # Open template (keep_vba=True to preserve macros)
-        wb = openpyxl.load_workbook(template_dest, keep_vba=True)
+        app = xw.App(visible=False)
+        try:
+            wb = app.books.open(template_dest)
 
-        if "fit" not in wb.sheetnames:
-            print(f"  Sheet 'fit' not found in template. Available sheets: {wb.sheetnames}")
-            return
+            if "fit" not in [s.name for s in wb.sheets]:
+                print(f"  Sheet 'fit' not found. Available: {[s.name for s in wb.sheets]}")
+                wb.close()
+                return
 
-        ws = wb["fit"]
+            ws = wb.sheets["fit"]
 
-        START_ROW = 34
-        for row_idx, row_data in enumerate(data):
-            for col_idx, value in enumerate(row_data):
-                ws.cell(row=START_ROW + row_idx, column=1 + col_idx, value=value)
+            START_ROW = 34
+            n_rows, n_cols = data.shape
+            top_left = ws.range(f"A{START_ROW}")
+            ws.range(top_left, top_left.offset(n_rows - 1, n_cols - 1)).value = data.tolist()
 
-        wb.save(template_dest)
-        print(f"Template filled with {len(data)} rows starting at row {START_ROW}.")
+            wb.save()
+            wb.close()
+            print(f"Template filled with {len(data)} rows starting at row {START_ROW}.")
+
+        finally:
+            app.quit()
 
     except Exception as e:
         print(f"Could not fill template: {e}")
