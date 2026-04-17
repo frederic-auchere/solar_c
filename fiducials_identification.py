@@ -225,7 +225,6 @@ def interactive_fiducial_measurement(image_path, file_name, max_num_circles=3, p
     plt.show(block=True)
     return finished_circles
 
-
 def fill_template_with_fiducials(fiducials_excel_path, template_dest):
     """
     Reads fiducials_measurements.xlsx (skipping first column),
@@ -303,7 +302,9 @@ folder_path = input("️  Enter folder path containing datx/qpsix files: ").stri
 npy_folder = os.path.join(folder_path, "npy_exports")
 
 # --- Copy template xlsm if not already present ---
-TEMPLATE_PATH = "/Volumes/solarc/02- Engineering/08 - Metrology/01 - Optics/07 - Measurements/FM/substrates_template_FM_form_casquette.xlsm"
+
+
+TEMPLATE_PATH = input("️  Enter template path (substrates_template_FM_form_casquette.xlsm): ").strip().strip("'\"") # "/Volumes/solarc/02- Engineering/08 - Metrology/01 - Optics/07 - Measurements/FM/substrates_template_FM_form_casquette.xlsm"
 template_dest = os.path.join(folder_path, os.path.basename(TEMPLATE_PATH))
 
 if os.path.exists(template_dest):
