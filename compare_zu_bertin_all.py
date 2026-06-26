@@ -6,53 +6,53 @@ import os
 from optics import surfaces
 import numpy as np
 from fitting import sfit
-path_zygo='/Volumes/solarc/02- Engineering/08 - Metrology/01 - Optics/07 - Measurements/FM/'
+path_individuel = "Y:/02- Engineering"
 cases = [
     dict(
         name="LW_SN1",
-        path_nanomefos="/Volumes/solarc/02- Engineering/08 - Metrology/01 - Optics/08 - Bertin/LW_SN1/",
+        path_nanomefos= path_individuel + "/08 - Metrology/01 - Optics/08 - Bertin/LW_SN1/",
         file_nanomefos="new_jan_2026/25264-301-PL002_SubstratLW-SN1 ASPH 3_ZU_woTilt.datx",
         dx_nanomefos=-30, dy_nanomefos=189,
-        file_zygo="/Volumes/solarc/02- Engineering/08 - Metrology/01 - Optics/07 - Measurements/FM/LW/FM_LW_SN1/Zygo/Form/29012026/report_substrate_FM_form_LW_SN1_binning1.fits"
+        file_zygo= path_individuel + "/08 - Metrology/01 - Optics/07 - Measurements/FM/LW/FM_LW_SN1/Zygo/Form/29012026/report_substrate_FM_form_LW_SN1_binning1.fits"
     ),
     dict(
         name="SW_SN5",
-        path_nanomefos="/Volumes/solarc/02- Engineering/08 - Metrology/01 - Optics/08 - Bertin/SW_SN5/",
+        path_nanomefos=path_individuel + "/08 - Metrology/01 - Optics/08 - Bertin/SW_SN5/",
         file_nanomefos="25264_Subsrat_SW_SN5 2_ZU_woTilt.datx",
         dx_nanomefos=1, dy_nanomefos=189,
-        file_zygo='/Volumes/solarc/02- Engineering/08 - Metrology/01 - Optics/07 - Measurements/FM/SW/FM_SW_SN5/Zygo/Form/20211202/substrate_FM_form_SW_SN5.fits',
+        file_zygo= path_individuel + "/08 - Metrology/01 - Optics/07 - Measurements/FM/SW/FM_SW_SN5/Zygo/Form/20211202/substrate_FM_form_SW_SN5.fits",
         # dx_zygo=15, dy_zygo=251,
     ),
     dict(
         name="SW_SN7",
-        path_nanomefos="/Volumes/solarc/02- Engineering/08 - Metrology/01 - Optics/08 - Bertin/SW_SN7/",
+        path_nanomefos= path_individuel + "/08 - Metrology/01 - Optics/08 - Bertin/SW_SN7/",
         file_nanomefos="25264_Subsrat_SW_SN7 3_ZU_woTilt.datx",
         dx_nanomefos=10, dy_nanomefos=189,
-        file_zygo='/Volumes/solarc/02- Engineering/08 - Metrology/01 - Optics/07 - Measurements/FM/SW/FM_SW_SN7/Zygo/Form/07012026/substrate_FM_form_SW_SN7_vertex_tol20.fits',
+        file_zygo= path_individuel + '/08 - Metrology/01 - Optics/07 - Measurements/FM/SW/FM_SW_SN7/Zygo/Form/07012026/substrate_FM_form_SW_SN7_vertex_tol20.fits',
         # dx_zygo=15, dy_zygo=251,
     ),
     dict(
         name="SW_SN8",
-        path_nanomefos="/Volumes/solarc/02- Engineering/08 - Metrology/01 - Optics/08 - Bertin/SW_SN8/",
+        path_nanomefos= path_individuel + "/08 - Metrology/01 - Optics/08 - Bertin/SW_SN8/",
         file_nanomefos="25264_Subsrat_SW_SN8 3_ZU_woTilt.datx",
         dx_nanomefos=0, dy_nanomefos=189,
-        file_zygo="/Volumes/solarc/02- Engineering/08 - Metrology/01 - Optics/07 - Measurements/FM/SW/FM_SW_SN8/Zygo/Form/19012026/report_binning_1.fits",
+        file_zygo= path_individuel + "/08 - Metrology/01 - Optics/07 - Measurements/FM/SW/FM_SW_SN8/Zygo/Form/19012026/report_binning_1.fits",
         # dx_zygo=15, dy_zygo=251,
     ),
     dict(
         name="SW_SN1",
-        path_nanomefos="/Volumes/solarc/02- Engineering/08 - Metrology/01 - Optics/08 - Bertin/SW_SN1/new_fev_2026/",
+        path_nanomefos= path_individuel + "/08 - Metrology/01 - Optics/08 - Bertin/SW_SN1/new_fev_2026/",
         file_nanomefos="26-02-16_SW-SN1_mesZygo.datx",
         dx_nanomefos=0, dy_nanomefos=189,
-        file_zygo='/Volumes/solarc/02- Engineering/08 - Metrology/01 - Optics/07 - Measurements/FM/SW/FM_SW_SN1/Zygo/Form/20260223/substrates_template_FM_form_casquette_vertex.fits',
+        file_zygo= path_individuel + '/08 - Metrology/01 - Optics/07 - Measurements/FM/SW/FM_SW_SN1/Zygo/Form/20260223/substrates_template_FM_form_casquette_vertex.fits',
         # dx_zygo=15, dy_zygo=251,
     ),
     dict(
         name="SW_SN6",
-        path_nanomefos="/Volumes/solarc/02- Engineering/08 - Metrology/01 - Optics/08 - Bertin/SW_SN1/new_fev_2026/",
+        path_nanomefos= path_individuel + "/08 - Metrology/01 - Optics/08 - Bertin/SW_SN1/new_fev_2026/",
         file_nanomefos="26-02-16_SW-SN1_mesZygo.datx",
         dx_nanomefos=0, dy_nanomefos=189,
-        file_zygo='/Volumes/solarc/02- Engineering/08 - Metrology/01 - Optics/07 - Measurements/FM/SW/FM_SW_SN6/Zygo/Form/20260623/substrates_FM_form_SW_SN6_20260625_Nina_small_aperture.fits',
+        file_zygo= path_individuel + '/08 - Metrology/01 - Optics/07 - Measurements/FM/SW/FM_SW_SN6/Zygo/Form/20260623/substrates_FM_form_SW_SN6_20260625_Nina_small_aperture.fits',
         # dx_zygo=15, dy_zygo=251,
     ),
     # dict(
