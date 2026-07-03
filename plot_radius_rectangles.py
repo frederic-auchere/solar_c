@@ -6,7 +6,7 @@ import math
 import statistics
 
 # Lire le fichier Excel
-fichier_excel = "/Volumes/solarc/02- Engineering/08 - Metrology/01 - Optics/02 - Radius/radius_curvature_LW.xlsx"
+fichier_excel = r"Y:\02- Engineering\08 - Metrology\01 - Optics\07 - Measurements\FM\LW\FM_LW_SN2\Zygo\Radius\radius_curvature_LW_SN2.xlsx"
 
 # Colonnes à chercher dans chaque feuille
 col_jeu1 = ["lambda power confocal", "Deplacement confocal"]
@@ -83,10 +83,10 @@ plt.tight_layout(rect=[0, 0, 1, 0.95])
 rms = math.sqrt(sum(x**2 for x in delta_all) / len(delta_all))
 
 # Calcul écart-type (standard deviation)
-std_dev = statistics.stdev(delta_all)
+#std_dev = statistics.stdev(delta_all)
 
 print(f"RMS: {rms:.6f}")
-print(f"Écart-type: {std_dev:.6f}")
+#print(f"Écart-type: {std_dev:.6f}")
 titre_global = "\n".join(intercepts_diff)
 plt.suptitle("Différences entre ordonnées à l'origine (catseye - confocal)\n" + titre_global,
              fontsize=12, y=1.02)
