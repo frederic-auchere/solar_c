@@ -44,7 +44,7 @@ def register(image, diameters=(1, 20)):
 
         ccc.append(cv2.matchTemplate(np.float32(image),
                                np.float32(template),
-                               cv2.TM_CCOEFF))
+                               cv2.TM_CCOEFF_NORMED))
 
     dx, dy, dz = parabolic_interpolation_nd(np.asarray(ccc))
 
