@@ -1,10 +1,14 @@
 import os
 import glob
+os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
 from optical.zygo import SagData, EGAFit
 from optics.surfaces import Substrate, CircularAperture, Standard, Sphere
 import numpy as np
 import matplotlib.pyplot as plt
 from openpyxl import load_workbook
+from matplotlib.ticker import MultipleLocator, FormatStrFormatter
+
+
 def read_table():
     fields = next(rows)
     table_keys = []
@@ -29,14 +33,14 @@ excel_file='/Volumes/solarc/02- Engineering/08 - Metrology/01 - Optics/07 - Meas
     # '/Volumes/solarc/02- Engineering/08 - Metrology/01 - Optics/07 - Measurements/FM/SW/FM_SW_SN10/Zygo/Form/20260630/substrates_template_FM_form_casquette_user_1.xlsm'
     # '/Volumes/solarc/02- Engineering/08 - Metrology/01 - Optics/07 - Measurements/FM/SW/FM_SW_SN9/Zygo/Form/20260622/substrates_template_FM_form_casquette_29062026.xlsm'
     # '/Volumes/solarc/02- Engineering/08 - Metrology/01 - Optics/07 - Measurements/FM/SW/FM_SW_SN3/Zygo/Form/20260814_correction/substrates_template_FM_form_casquette_SWSN3_without_crown.xlsm'
-# '/Volumes/solarc/02- Engineering/08 - Metrology/01 - Optics/07 - Measurements/FM/SW/FM_SW_SN3/Zygo/Form/20260814_correction/substrates_template_FM_form_casquette_SWSN3.xlsm'
+# excel_file='/Volumes/solarc/02- Engineering/08 - Metrology/01 - Optics/07 - Measurements/FM/SW/FM_SW_SN3/Zygo/Form/20260814_correction/substrates_template_FM_form_casquette_SWSN3.xlsm'
 fitter=EGAFit.from_xlsx(excel_file)
 print(fitter.sag_data)
 print(fitter.substrate.surface)
 
 fiducials_in_substrate=[]
-wb = load_workbook(excel_file, keep_vba=True)
-rows = wb.active.rows
+wb = load_workbook(excel_file, read_only=True, data_only=True)
+rows = wb.active.iter_rows(max_col=20)
 while True:
     try:
         row = next(rows)
@@ -59,7 +63,7 @@ while True:
                 fitter.sag_data[i].to_substrate(row.pop('x2'), row.pop('y2')),
                 fitter.sag_data[i].to_substrate(row.pop('x3'), row.pop('y3')),
             ])
-
+wb.close()
 fid = np.array(fiducials_in_substrate, dtype=float)   # forme (n_substrats, 3, 2)
 from scipy.optimize import linear_sum_assignment
 
@@ -115,12 +119,28 @@ levels = np.unique(crown[valid])
 norm = plt.Normalize(levels.min(), levels.max())
 cmap = plt.get_cmap('rainbow')
 
-fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+fig, axes = plt.subplots(1, 3, figsize=(15, 5), layout="constrained")
+
+half = 0.25  # half-width in mm, so each panel is a 0.5 x 0.5 mm window
+
 for k, ax in enumerate(axes):
     means = np.array([np.nanmean(fid[crown == lvl, k, :], axis=0) for lvl in levels])
     ax.plot(means[:, 0], means[:, 1], color='black', lw=0.8, zorder=4)
     sc = ax.scatter(means[:, 0], means[:, 1], s=120, c=levels, cmap=cmap, norm=norm,
                     linewidths=1, zorder=5)
+
+    # Centre of this fiducial's points, snapped so the edges land on ticks
+    cx = 0.5 * (np.nanmax(means[:, 0]) + np.nanmin(means[:, 0]))
+    cy = 0.5 * (np.nanmax(means[:, 1]) + np.nanmin(means[:, 1]))
+    cx = np.round(cx / 0.05) * 0.05
+    cy = np.round(cy / 0.05) * 0.05
+    ax.set_xlim(cx - half, cx + half)
+    ax.set_ylim(cy - half, cy + half)
+
+    ax.xaxis.set_major_locator(MultipleLocator(0.1))
+    ax.yaxis.set_major_locator(MultipleLocator(0.1))
+    ax.xaxis.set_major_formatter(FormatStrFormatter("%.1f"))
+    ax.yaxis.set_major_formatter(FormatStrFormatter("%.1f"))
 
     ax.set_title(f"Fiducial {k + 1}")
     ax.set_xlabel("x (mm)")
@@ -131,5 +151,27 @@ for k, ax in enumerate(axes):
 fig.colorbar(sc, ax=axes, label="Crown index", shrink=0.8)
 plt.show()
 
+# Longest side of the fiducial triangle, per image and per crown (mm, after to_substrate)
+sides = np.linalg.norm(fid - np.roll(fid, -1, axis=1), axis=2)          # (n, 3): f1-f2, f2-f3, f3-f1
+longest = np.max(np.nan_to_num(sides, nan=-1.0), axis=1)
+longest[~valid] = np.nan
+which = np.argmax(np.nan_to_num(sides, nan=-1.0), axis=1)
+names = ['f1-f2', 'f2-f3', 'f3-f1']
+print("longest side is:", {names[k]: int(np.sum(which[valid] == k)) for k in range(3)}, "(images)")
+
+lm = np.array([np.nanmean(longest[crown == lvl]) for lvl in levels])
+le = np.array([np.nanstd(longest[crown == lvl], ddof=1) / np.sqrt(np.sum(crown == lvl)) for lvl in levels])
 
 
+fig, ax = plt.subplots(figsize=(9, 4.5), layout="constrained")
+ax.plot(crown[valid], longest[valid], '.', color='grey', ms=4, alpha=0.5, label='single images')
+ax.errorbar(levels, lm, yerr=le, color='black', lw=0.8, capsize=2, zorder=2, label='crown mean')
+ax.scatter(levels, lm, s=60, c=levels, cmap=cmap, norm=norm,
+           edgecolors='white', linewidths=1, zorder=3)
+ax.set_xticks(levels)
+ax.set_xlabel("Crown index")
+ax.set_ylabel("longest side (mm)")
+
+ax.legend(frameon=False, fontsize=9)
+ax.grid(alpha=0.3)
+plt.show()
