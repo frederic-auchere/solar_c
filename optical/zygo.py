@@ -87,9 +87,10 @@ class EGAFit(Fit):
                 mirror_crown = [mirror_crown_angles[c - 1] for c in crown_indices] if all(crown_indices) else None
 
                 to_normal = type(reference) is not surfaces.Flat
-                geometries = ega_from_fiducials(fiducials, substrate, to_normal, offset_angles=mirror_crown)
-                for geometry in geometries:
-                    print(geometry)
+                geometries = ega_from_fiducials(fiducials, substrate, to_normal, offset_angles=mirror_crown, global_magnification=True)
+                # geometries = ega_from_fiducials(fiducials, substrate, to_normal, global_magnification=False)
+                # for geometry in geometries:
+                #     print(geometry)
 
                 sag_data = []
                 for row, geometry in zip(table, geometries):
@@ -130,6 +131,7 @@ class EGAFit(Fit):
                     x, y, _ = to_ega @ rotation @ to_pivot @ (0, 0, 1)
                     row['dx'], row['dy'] = sd.to_data(x, y)
                     row['theta']  = (row['theta'] - roll) % 360
+                    # row['gy'] *= 1.0
                     sag_data.append(SagData(file, binning=binning, **row))
 
         return cls(sag_data,

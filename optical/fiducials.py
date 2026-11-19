@@ -5,7 +5,7 @@ from scipy.stats import circmean, circstd
 import numpy as np
 
 
-def match_polygons(polygons, reference, offset_angles=None, absolute_angles=False, estimator='mean'):
+def match_polygons(polygons, reference, offset_angles=None, absolute_angles=False, estimator='mean', global_magnification=True):
     """
     Computes the transformation between a list of polygons and a reference polygon.
 
@@ -64,14 +64,31 @@ def match_polygons(polygons, reference, offset_angles=None, absolute_angles=Fals
         angles = [delta + offset for offset in offset_angles]
         angles_std = [np.degrees(circstd(deltas))] * len(angles)
 
-    # The scale is the mean of the scales between all pairs of sides
-    scales = [edge2.v.norm / edge1.v.norm for polygon in ordered_polygons
-                   for edge1, edge2 in zip(polygon.edges, reference.edges)]
-    g = estimator(scales)
-    g_std = np.std(scales)
+    if global_magnification:
+        # The scale is the mean of the scales between all pairs of sides
+        scales = [edge2.v.norm / edge1.v.norm for polygon in ordered_polygons
+                       for edge1, edge2 in zip(polygon.edges, reference.edges)]
+        mag = (estimator(scales),) * len(angles)
+        mag_std = (np.std(scales),) * len(angles)
+    else:
+        mag = []
+        mag_std = []
+        if offset_angles is None:
+            for polygon in ordered_polygons:
+                scales = [edge2.v.norm / edge1.v.norm for edge1, edge2 in zip(polygon.edges, reference.edges)]
+                mag.append(estimator(scales))
+                mag_std.append(np.std(scales))
+        else:
+            unique_angles = np.unique(offset_angles, return_index=False)
+            for angle in unique_angles:
+                polygons = [p for oa, p in zip(offset_angles, ordered_polygons) if angle == oa]
+                for polygon in polygons:
+                    scales = [edge2.v.norm / edge1.v.norm for edge1, edge2 in zip(polygon.edges, reference.edges)]
+                    mag.extend((estimator(scales),) * len(polygons))
+                    mag_std.extend((np.std(scales),) * len(polygons))
 
     output = []
-    for polygon, angle, angle_std in zip(ordered_polygons, angles, angles_std):
+    for polygon, angle, angle_std, g, g_std in zip(ordered_polygons, angles, angles_std, mag, mag_std):
 
         # Scale and rotate the reference to the polygon
         cos_g, sin_g = np.cos(np.radians(angle)) / g, np.sin(np.radians(angle)) / g
