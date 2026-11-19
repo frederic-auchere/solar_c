@@ -82,10 +82,9 @@ def match_polygons(polygons, reference, offset_angles=None, absolute_angles=Fals
             unique_angles = np.unique(offset_angles, return_index=False)
             for angle in unique_angles:
                 polygons = [p for oa, p in zip(offset_angles, ordered_polygons) if angle == oa]
-                for polygon in polygons:
-                    scales = [edge2.v.norm / edge1.v.norm for edge1, edge2 in zip(polygon.edges, reference.edges)]
-                    mag.extend((estimator(scales),) * len(polygons))
-                    mag_std.extend((np.std(scales),) * len(polygons))
+                scales = [edge2.v.norm / edge1.v.norm for polygon in polygons for edge1, edge2 in zip(polygon.edges, reference.edges)]
+                mag.extend((estimator(scales),) * len(polygons))
+                mag_std.extend((np.std(scales),) * len(polygons))
 
     output = []
     for polygon, angle, angle_std, g, g_std in zip(ordered_polygons, angles, angles_std, mag, mag_std):
