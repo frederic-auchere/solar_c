@@ -27,7 +27,9 @@ def read_table():
         table.append({key: cell.value for key, cell in zip(table_keys, row)})
 
     return table
-excel_file='/Volumes/solarc/02- Engineering/08 - Metrology/01 - Optics/07 - Measurements/FM/SW/FM_SW_SN9/Zygo/Form/20260622/substrates_template_FM_form_casquette_29062026.xlsm' #sw9 kapton
+# excel_file='/Volumes/solarc/02- Engineering/08 - Metrology/01 - Optics/07 - Measurements/FM/SW/FM_SW_SN9/Zygo/Form/20260622/substrates_template_FM_form_casquette_29062026.xlsm' #sw9 kapton
+# excel_file = r"Y:/02- Engineering/08 - Metrology/01 - Optics/07 - Measurements/FM/SW/FM_SW_SN9/Zygo/Form/20260622/substrates_template_FM_form_casquette_29062026.xlsm"
+excel_file = r"C:\Users\fauchere\Desktop\20260622\substrates_template_FM_form_casquette_29062026.xlsm"
     #'/Volumes/solarc/02- Engineering/08 - Metrology/01 - Optics/07 - Measurements/FM/SW_livraison_finale/FM_SW_SN9/Zygo/Form/20261109_new_fiducials/substrates_template_FM_form_casquette.xlsm'
     #'/Volumes/solarc/02- Engineering/08 - Metrology/01 - Optics/07 - Measurements/FM/SW_livraison_finale/FM_SW_SN3/Zygo/Tilt/20261023/substrates_template_FM_form_casquette.xlsm' #sw3 tilt
     # '/Volumes/solarc/02- Engineering/08 - Metrology/01 - Optics/07 - Measurements/FM/SW/FM_SW_SN10/Zygo/Form/20260630/substrates_template_FM_form_casquette_user_1.xlsm'
@@ -38,6 +40,7 @@ fitter=EGAFit.from_xlsx(excel_file)
 print(fitter.sag_data)
 print(fitter.substrate.surface)
 
+fiducials_in_data=[]
 fiducials_in_substrate=[]
 wb = load_workbook(excel_file, read_only=True, data_only=True)
 rows = wb.active.iter_rows(max_col=20)
@@ -58,35 +61,41 @@ while True:
         for i,row in enumerate(table):
             crown_index = row.pop('crown')
             crown_indices.append(crown_index if crown_index > 0 else None)
-            fiducials_in_substrate.append([
-                fitter.sag_data[i].to_substrate(row.pop('x1'), row.pop('y1')),
-                fitter.sag_data[i].to_substrate(row.pop('x2'), row.pop('y2')),
-                fitter.sag_data[i].to_substrate(row.pop('x3'), row.pop('y3')),
-            ])
+            coordinates = [
+                (row.pop('x1'), row.pop('y1')),
+                (row.pop('x2'), row.pop('y2')),
+                (row.pop('x3'), row.pop('y3')),
+            ]
+            fiducials_in_data.append(coordinates)
+            fiducials_in_substrate.append([fitter.sag_data[i].to_substrate(*c) for c in coordinates])
 wb.close()
 fid = np.array(fiducials_in_substrate, dtype=float)   # forme (n_substrats, 3, 2)
+fid_data = np.array(fiducials_in_data, dtype=float)   # forme (n_substrats, 3, 2)
 from scipy.optimize import linear_sum_assignment
 
-def reorder_fiducials(fid):
+def reorder_fiducials(fid, fid_data):
     """Réordonne les 3 points de chaque substrat pour qu'ils correspondent
     à ceux des substrats précédents (moyenne courante comme référence)."""
     out = fid.copy()
+    out_data = fid_data.copy()
     perms = [np.arange(3)]
     for i in range(1, len(fid)):
         ref = out[:i].mean(axis=0)                       # (3, 2)
         cost = np.linalg.norm(fid[i][:, None, :] - ref[None, :, :], axis=2)  # (3, 3)
         cand, slot = linear_sum_assignment(cost)         # candidat cand[j] -> slot slot[j]
         out[i, slot] = fid[i, cand]
+        out_data[i, slot] = fid_data[i, cand]
         perms.append(slot)
-    return out, perms
+    return out, out_data, perms
 
-fid_sorted, perms = reorder_fiducials(fid)
+fid_sorted, fid_sorted_data, perms = reorder_fiducials(fid, fid_data)
 
 for i, p in enumerate(perms):
     if not np.array_equal(p, [0, 1, 2]):
         print(f"Substrat {i}: points réordonnés (affectation {p})")
 
 fid=fid_sorted
+fid_data = fid_sorted_data
 crown = np.array([np.nan if c is None else c for c in crown_indices], dtype=float)
 valid = np.isfinite(crown)
 
@@ -149,18 +158,26 @@ for k, ax in enumerate(axes):
     ax.grid(alpha=0.3)
 
 fig.colorbar(sc, ax=axes, label="Crown index", shrink=0.8)
+fig.savefig('fiducials.png')
 plt.show()
 
 # Longest side of the fiducial triangle, per image and per crown (mm, after to_substrate)
 sides = np.linalg.norm(fid - np.roll(fid, -1, axis=1), axis=2)          # (n, 3): f1-f2, f2-f3, f3-f1
+sides_data = np.linalg.norm(fid_data - np.roll(fid_data, -1, axis=1), axis=2)          # (n, 3): f1-f2, f2-f3, f3-f1
 longest = np.max(np.nan_to_num(sides, nan=-1.0), axis=1)
 longest[~valid] = np.nan
+longest_data = np.max(np.nan_to_num(sides_data, nan=-1.0), axis=1)
+longest_data[~valid] = np.nan
+
 which = np.argmax(np.nan_to_num(sides, nan=-1.0), axis=1)
 names = ['f1-f2', 'f2-f3', 'f3-f1']
 print("longest side is:", {names[k]: int(np.sum(which[valid] == k)) for k in range(3)}, "(images)")
 
 lm = np.array([np.nanmean(longest[crown == lvl]) for lvl in levels])
 le = np.array([np.nanstd(longest[crown == lvl], ddof=1) / np.sqrt(np.sum(crown == lvl)) for lvl in levels])
+
+lm_data = np.array([np.nanmean(longest_data[crown == lvl]) for lvl in levels])
+le_data = np.array([np.nanstd(longest_data[crown == lvl], ddof=1) / np.sqrt(np.sum(crown == lvl)) for lvl in levels])
 
 
 fig, ax = plt.subplots(figsize=(9, 4.5), layout="constrained")
@@ -175,3 +192,31 @@ ax.set_ylabel("longest side (mm)")
 ax.legend(frameon=False, fontsize=9)
 ax.grid(alpha=0.3)
 plt.show()
+
+fig.savefig('longest_mm.png')
+
+fig, ax = plt.subplots(figsize=(9, 4.5), layout="constrained")
+ax.plot(crown[valid], longest_data[valid], '.', color='grey', ms=4, alpha=0.5, label='single images')
+ax.errorbar(levels, lm_data, yerr=le_data, color='black', lw=0.8, capsize=2, zorder=2, label='crown mean')
+ax.scatter(levels, lm_data, s=60, c=levels, cmap=cmap, norm=norm,
+           edgecolors='white', linewidths=1, zorder=3)
+ax.set_xticks(levels)
+ax.set_xlabel("Crown index")
+ax.set_ylabel("longest side (pix)")
+
+ax.legend(frameon=False, fontsize=9)
+ax.grid(alpha=0.3)
+plt.show()
+
+fig.savefig('longest_data.png')
+
+means = []
+for k in (0, 1, 2):
+    means.append([np.nanmean(fid_data[crown == lvl, k, :], axis=0) for lvl in levels])
+means = np.asarray(means)
+means = np.concatenate((means, np.expand_dims(means[0, :, :], axis=0)), axis=0)
+
+fig, ax = plt.subplots(1, 1)
+for lvl in levels[0:1]:
+    ax.plot(means[:, int(lvl)-1, 0], means[:, int(lvl)-1, 1])
+ax.set_aspect("equal")
