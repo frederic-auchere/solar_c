@@ -3,9 +3,31 @@ from optics.geometry import Polygon, Point
 from itertools import permutations
 from scipy.stats import circmean, circstd
 import numpy as np
+from skimage.transform import SimilarityTransform
+from scipy.optimize import least_squares
 
 
-def match_polygons(polygons, reference, offset_angles=None, absolute_angles=False, estimator='mean', global_magnification=True):
+def estimate_noshear(src, dst):
+    src = np.asarray(src)
+    dst = np.asarray(dst)
+
+    def residuals(p):
+        gx, gy, theta, dx, dy = p
+        cos, sin = np.cos(theta), np.sin(theta)
+        matrix = np.array([[gx * cos, -gy * sin, dx],
+                           [gx * sin, gy * cos, dy],
+                           [0, 0, 1]])
+        pred = matrix @ np.concatenate((src, np.ones((1, src.shape[1]))))
+        return (pred[0:2, :] - dst).ravel()
+
+    sim = SimilarityTransform()
+    sim.estimate(src.T, dst.T)
+    p0 = [sim.scale, sim.scale, sim.rotation, *sim.translation]
+    res = least_squares(residuals, p0)
+
+    return res
+
+def match_polygons(polygons, reference, offset_angles=None, absolute_angles=False, estimator='mean', global_magnification=True, isotropic=True):
     """
     Computes the transformation between a list of polygons and a reference polygon.
 
@@ -74,25 +96,55 @@ def match_polygons(polygons, reference, offset_angles=None, absolute_angles=Fals
         mag = []
         mag_std = []
         if offset_angles is None:
-            for polygon in ordered_polygons:
-                scales = [edge2.v.norm / edge1.v.norm for edge1, edge2 in zip(polygon.edges, reference.edges)]
-                mag.append(estimator(scales))
-                mag_std.append(np.std(scales))
+            new_angles = []
+            for polygon, angle in zip(ordered_polygons, angles):
+                if isotropic:
+                    scales = [edge2.v.norm / edge1.v.norm for edge1, edge2 in zip(polygon.edges, reference.edges)]
+                    mag.append(estimator(scales))
+                    mag_std.append(np.std(scales))
+                    new_angles.append(angle)
+                else:
+                    xy_reference = np.stack(([v.x for v in reference.vertices], [v.y for v in reference.vertices]))
+                    xy_polygon = np.stack(([v.x for v in polygon.vertices], [v.y for v in polygon.vertices]))
+                    res = estimate_noshear(xy_polygon, xy_reference)
+                    mag.append((res.x[0], res.x[1]))
+                    mag_std.append((0, 0))
+                    new_angles.append((360 - np.degrees(res.x[2])) % 360)
+            angles = new_angles
         else:
-            unique_angles = np.unique(offset_angles, return_index=False)
+            unique_angles = np.unique(angles, return_index=False)
             for angle in unique_angles:
-                polygons = [p for oa, p in zip(offset_angles, ordered_polygons) if angle == oa]
-                scales = [edge2.v.norm / edge1.v.norm for polygon in polygons for edge1, edge2 in zip(polygon.edges, reference.edges)]
-                mag.extend((estimator(scales),) * len(polygons))
-                mag_std.extend((np.std(scales),) * len(polygons))
+                polygons = [op for oa, op in zip(angles, ordered_polygons) if angle == oa]
+                if isotropic:
+                    scales = [edge2.v.norm / edge1.v.norm for polygon in polygons for edge1, edge2 in zip(polygon.edges, reference.edges)]
+                    mag.extend((estimator(scales),) * len(polygons))
+                    mag_std.extend((np.std(scales),) * len(polygons))
+                else:
+                    x_scales = []
+                    y_scales = []
+                    for polygon in polygons:
+                        cos, sin = np.cos(np.radians(angle)), np.sin(np.radians(angle))
+                        rotation_matrix = np.array([[cos, -sin],
+                                                    [sin, cos]])
+                        xy = np.stack(([e.v.x for e in reference.edges], [e.v.y for e in reference.edges]))
+                        x, y = rotation_matrix @ xy
+                        x_scales.extend([x_edge2 / edge1.v.x for edge1, x_edge2 in zip(polygon.edges, x)])
+                        y_scales.extend([y_edge2 / edge1.v.y for edge1, y_edge2 in zip(polygon.edges, y)])
+                    mag.extend(((estimator(x_scales), estimator(y_scales)),) * len(polygons))
+                    mag_std.extend(((np.std(x_scales), np.std(y_scales)),) * len(polygons))
 
     output = []
     for polygon, angle, angle_std, g, g_std in zip(ordered_polygons, angles, angles_std, mag, mag_std):
 
+        if type(g) is tuple:
+            gx, gy = g
+        else:
+            gx = gy = g
+
         # Scale and rotate the reference to the polygon
-        cos_g, sin_g = np.cos(np.radians(angle)) / g, np.sin(np.radians(angle)) / g
-        rotation_matrix = np.array([[cos_g, -sin_g],
-                                    [sin_g, cos_g]])
+        cos, sin = np.cos(np.radians(angle)), np.sin(np.radians(angle))
+        rotation_matrix = np.array([[cos / gx, -sin / gy],
+                                    [sin / gx, cos / gy]])
         xy = np.stack(([v.x for v in reference.vertices], [v.y for v in reference.vertices]))
         x, y = rotation_matrix @ xy
 
@@ -104,8 +156,8 @@ def match_polygons(polygons, reference, offset_angles=None, absolute_angles=Fals
         dy = estimator(dys)
         dy_std = np.std(dys)
 
-        output.append({'gx': g, 'gx_std': g_std,
-                       'gy': g, 'gy_std': g_std,
+        output.append({'gx': gx, 'gx_std': g_std,
+                       'gy': gy, 'gy_std': g_std,
                        'dx': dx, 'dx_std': dx_std,
                        'dy': dy, 'dy_std': dy_std,
                        'theta': angle, 'theta_std': angle_std})
