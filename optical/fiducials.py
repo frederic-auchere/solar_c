@@ -36,7 +36,7 @@ def estimate(ordered_polygons, reference, offset_angles=None, isotropic=True, gl
                 sc.append(np.mean([scale for oa, scale in zip(offset_angles, scales) if angle == oa]))
             scales = sc
 
-        angles = [s.rotation for s in similarities]
+        angles = [(-s.rotation) % (2 * np.pi) for s in similarities]
         if offset_angles is not None:  # adjust only the delta angle
             deltas = [a - o for a, o in zip(angles, np.radians(offset_angles))]
             angles = circmean(deltas),
@@ -87,10 +87,10 @@ def estimate(ordered_polygons, reference, offset_angles=None, isotropic=True, gl
                 p = p[n_polygons:]
 
         if offset_angles is None:
-            angles = p[0:n_polygons]
+            angles = p[0:n_polygons] % (2 * np.pi)
             p = p[n_polygons:]
         else:
-            angles = [p[0] + o for o in np.radians(offset_angles)]
+            angles = [(p[0] + o) % (2 * np.pi) for o in np.radians(offset_angles)]
             p = p[1:]
 
         if offset_angles is None:
@@ -142,6 +142,7 @@ def estimate(ordered_polygons, reference, offset_angles=None, isotropic=True, gl
 
     return unpack_parameters(res.x)
 
+
 def match_polygons(polygons, reference, offset_angles=None, absolute_angles=False, estimator='mean', global_magnification=True, isotropic=True):
     """
     Computes the transformation between a list of polygons and a reference polygon.
@@ -187,12 +188,9 @@ def match_polygons(polygons, reference, offset_angles=None, absolute_angles=Fals
         angles.append(theta[idx])
 
     res = estimate(ordered_polygons, reference, offset_angles=offset_angles, isotropic=isotropic, global_magnification=global_magnification)
+    print(np.degrees(res[2]))
 
-    return [{'gx': gx, 'gx_std': 0,
-             'gy': gy, 'gy_std': 0,
-             'dx': dx, 'dx_std': 0,
-             'dy': dy, 'dy_std': 0,
-             'theta': np.degrees(angle), 'theta_std': 0} for gx, gy, angle, (dx, dy) in zip(*res)]
+    return [{'gx': gx, 'gy': gy, 'dx': dx, 'dy': dy, 'theta': np.degrees(angle)} for gx, gy, angle, (dx, dy) in zip(*res)]
 
 
 def ega_from_fiducials(measured_fiducials, substrate: EGASubstrate, to_normal:bool, **kwargs):
